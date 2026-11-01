@@ -279,7 +279,7 @@ namespace Stremio.Core.Api
 
             request.Headers.TryAddWithoutValidation(
                 "User-Agent",
-                "StremioXbox/1.0");
+                "Xamlio/1.0");
 
             request.Headers.TryAddWithoutValidation(
                 "Accept",
@@ -363,7 +363,7 @@ namespace Stremio.Core.Api
 
             request.Headers.TryAddWithoutValidation(
                 "User-Agent",
-                "StremioXbox/1.0");
+                "Xamlio/1.0");
 
             request.Headers.TryAddWithoutValidation(
                 "Accept",

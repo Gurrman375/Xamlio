@@ -1,5 +1,5 @@
-using StremioXbox.Services;
-using StremioXbox.Views;
+using Xamlio.Services;
+using Xamlio.Views;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.UI.Core;
@@ -8,7 +8,7 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
 
-namespace StremioXbox
+namespace Xamlio
 {
     sealed partial class App : Application
     {

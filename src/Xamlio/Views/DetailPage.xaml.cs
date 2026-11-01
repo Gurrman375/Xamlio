@@ -1,6 +1,6 @@
 using Stremio.Core.Addons;
 using Stremio.Core.Api;
-using StremioXbox.Services;
+using Xamlio.Services;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,7 +19,7 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 
-namespace StremioXbox.Views
+namespace Xamlio.Views
 {
     public sealed class EpisodeRow
     {

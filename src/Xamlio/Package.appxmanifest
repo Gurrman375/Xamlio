@@ -11,8 +11,8 @@
   <mp:PhoneIdentity PhoneProductId="6b1e2a4c-8d5f-4e3a-9c7b-2f1d0e9a8b71" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
 
   <Properties>
-    <DisplayName>Stremio Xbox</DisplayName>
-    <PublisherDisplayName>StremioXbox</PublisherDisplayName>
+    <DisplayName>Xamlio</DisplayName>
+    <PublisherDisplayName>Xamlio</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -26,9 +26,9 @@
   </Resources>
 
   <Applications>
-    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="StremioXbox.App">
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="Xamlio.App">
       <uap:VisualElements
-        DisplayName="Stremio Xbox"
+        DisplayName="Xamlio"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png"
         Description="Native Stremio client for Xbox"

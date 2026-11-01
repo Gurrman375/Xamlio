@@ -5,7 +5,7 @@ using Stremio.Core.Addons;
 using Stremio.Core.Api;
 using Stremio.Core.Settings;
 
-namespace StremioXbox.Services
+namespace Xamlio.Services
 {
     // App-wide singletons. Small enough that a DI container isn't worth it.
     public static class AppServices
@@ -15,7 +15,7 @@ namespace StremioXbox.Services
         static AppServices()
         {
             Http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
-            Http.DefaultRequestHeaders.UserAgent.ParseAdd("StremioXbox/1.0");
+            Http.DefaultRequestHeaders.UserAgent.ParseAdd("Xamlio/1.0");
             Settings = new AppSettings(new LocalSettingsStore());
             Api = new StremioApi(Http);
             Addons = new AddonManager(new AddonClient(Http), Api, Settings);

@@ -4,13 +4,13 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Stremio.Core.Addons;
-using StremioXbox.Services;
+using Xamlio.Services;
 using Windows.System;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
 
-namespace StremioXbox.Views
+namespace Xamlio.Views
 {
     public sealed partial class SearchPage : Page
     {

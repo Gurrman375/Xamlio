@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Windows.Foundation.Metadata;
 using Windows.Graphics.Display.Core;
 
-namespace StremioXbox.Services
+namespace Xamlio.Services
 {
     // Switches the console's HDMI output to match the video (4K, HDR10, frame rate), the way
     // the built-in media apps do. Only does anything on Xbox; on PC HdmiDisplayInformation is null.

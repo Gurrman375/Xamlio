@@ -5,7 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using Stremio.Core.Addons;
 
-namespace StremioXbox.Views
+namespace Xamlio.Views
 {
     public static class WatchStateHelper
     {

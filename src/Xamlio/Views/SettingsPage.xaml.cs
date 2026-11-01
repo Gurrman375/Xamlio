@@ -3,13 +3,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Stremio.Core.Api;
-using StremioXbox.Services;
+using Xamlio.Services;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 
-namespace StremioXbox.Views
+namespace Xamlio.Views
 {
     public sealed partial class SettingsPage : Page
     {

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using LibVLCSharp.Platforms.Windows;
 using LibVLCSharp.Shared;
-using StremioXbox.Services;
+using Xamlio.Services;
 using Windows.System.Display;
 using Windows.Storage;
 using Windows.UI.Core;
@@ -16,7 +16,7 @@ using Windows.UI.Xaml.Navigation;
 using Windows.Gaming.Input;
 
 
-namespace StremioXbox.Views
+namespace Xamlio.Views
 {
     public sealed partial class PlayerPage : Page
     {

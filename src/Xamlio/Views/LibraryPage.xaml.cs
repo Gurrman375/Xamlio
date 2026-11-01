@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Stremio.Core.Api;
-using StremioXbox.Services;
+using Xamlio.Services;
 using Windows.Gaming.Input;
 using Windows.Storage;
 using Windows.UI;
@@ -16,7 +16,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
-namespace StremioXbox.Views
+namespace Xamlio.Views
 {
     public sealed class LibraryRow
     {

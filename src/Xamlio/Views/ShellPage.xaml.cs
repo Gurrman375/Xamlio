@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using StremioXbox.Services;
+using Xamlio.Services;
 using Windows.System;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
@@ -8,7 +8,7 @@ using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
-namespace StremioXbox.Views
+namespace Xamlio.Views
 {
     public sealed partial class ShellPage : Page
     {

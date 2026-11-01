@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Stremio.Core.Addons;
-using StremioXbox.Services;
+using Xamlio.Services;
 using Windows.Gaming.Input;
 using Windows.Storage;
 using Windows.System;
@@ -17,7 +17,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
-namespace StremioXbox.Views
+namespace Xamlio.Views
 {
     public class CatalogRow : INotifyPropertyChanged
     {

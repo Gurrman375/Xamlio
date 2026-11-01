@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Stremio.Core.Addons;
 
-namespace StremioXbox.Views
+namespace Xamlio.Views
 {
     public class MetaArgs
     {

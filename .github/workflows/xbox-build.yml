@@ -34,7 +34,7 @@ jobs:
         run: |
           $manifest = Join-Path `
             $env:GITHUB_WORKSPACE `
-            "src/StremioXbox/Package.appxmanifest"
+            "src/Xamlio/Package.appxmanifest"
 
           $version = "1.0.${{ github.run_number }}.0"
           $contents = [System.IO.File]::ReadAllText($manifest)
@@ -74,7 +74,7 @@ jobs:
         run: |
           $manifest = Join-Path `
             $env:GITHUB_WORKSPACE `
-            "src/StremioXbox/Package.appxmanifest"
+            "src/Xamlio/Package.appxmanifest"
 
           [xml]$xml = [System.IO.File]::ReadAllText($manifest)
 
@@ -134,7 +134,7 @@ jobs:
             -Path out |
             Out-Null
 
-          msbuild src/StremioXbox/StremioXbox.csproj `
+          msbuild src/Xamlio/Xamlio.csproj `
             /restore `
             /m `
             /p:Configuration=Release `
@@ -173,7 +173,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StremioXbox-${{ github.run_number }}
+          name: Xamlio-${{ github.run_number }}
           path: dist/
           if-no-files-found: error
 
@@ -190,16 +190,16 @@ jobs:
               gh release delete latest --yes --cleanup-tag
           }
 
-          $title = "Stremio Xbox $env:PACKAGE_VERSION"
+          $title = "Xamlio $env:PACKAGE_VERSION"
 
           $notes = @"
           Build $env:PACKAGE_VERSION
           Commit: ${{ github.sha }}
 
           Install through Xbox Device Portal:
-          1. Select the StremioXbox app package.
+          1. Select the Xamlio app package.
           2. Add the other .appx files as dependencies.
-          3. Install StremioXbox.cer if the certificate is requested.
+          3. Install Xamlio.cer if the certificate is requested.
           "@
 
           $files = Get-ChildItem dist -File |

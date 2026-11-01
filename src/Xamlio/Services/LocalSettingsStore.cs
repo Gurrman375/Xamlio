@@ -1,7 +1,7 @@
 using Stremio.Core.Settings;
 using Windows.Storage;
 
-namespace StremioXbox.Services
+namespace Xamlio.Services
 {
     public class LocalSettingsStore : ISettingsStore
     {

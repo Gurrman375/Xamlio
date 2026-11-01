@@ -7,8 +7,8 @@
     <ProjectGuid>{6B1E2A4C-8D5F-4E3A-9C7B-2F1D0E9A8B71}</ProjectGuid>
     <OutputType>AppContainerExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>StremioXbox</RootNamespace>
-    <AssemblyName>StremioXbox</AssemblyName>
+    <RootNamespace>Xamlio</RootNamespace>
+    <AssemblyName>Xamlio</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.26100.0</TargetPlatformVersion>

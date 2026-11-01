@@ -1,5 +1,5 @@
 <Application
-    x:Class="StremioXbox.App"
+    x:Class="Xamlio.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     RequestedTheme="Dark"

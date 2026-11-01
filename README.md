@@ -62,7 +62,7 @@ You don't need a PC. GitHub Actions builds the app, and you install it from your
 Open **Releases → latest** in this repo: <https://github.com/rsharma929/stremio-xbox/releases/tag/latest>.
 Download every file listed there:
 
-- `StremioXbox_<version>_x64.msix` is the app.
+- `Xamlio_<version>_x64.msix` is the app.
 - `Microsoft.VCLibs.x64.*.appx`, `Microsoft.NET.Native.Framework.*.appx` and `Microsoft.NET.Native.Runtime.*.appx` are dependencies.
 
 ### 3. Install through Device Portal
@@ -70,8 +70,8 @@ Download every file listed there:
 1. In your phone's browser, open the Device Portal address from step 1. Your browser will warn about the
    certificate; accept it. Then sign in.
 2. Go to **Home → My games & apps → Add**.
-3. Pick the `StremioXbox_*.msix` file, tap **Next**, and add each `.appx` dependency file.
-4. Tap **Start**. Stremio Xbox now appears in Dev Home's app list.
+3. Pick the `Xamlio_*.msix` file, tap **Next**, and add each `.appx` dependency file.
+4. Tap **Start**. Xamlio now appears in Dev Home's app list.
 5. **Recommended:** in Dev Home (or Device Portal), open the app's settings and change its **App type** from
    *App* to **Game**. Games get far more memory and CPU than apps, and get exclusive GPU access.
 
@@ -115,13 +115,13 @@ Only stream content you have the rights to.
 
 ```
 src/Stremio.Core/        netstandard2.0, no UI: addon protocol, account API, stream resolution, settings
-src/StremioXbox/         UWP app: pages, LibVLC player, HDMI display-mode service
+src/Xamlio/         UWP app: pages, LibVLC player, HDMI display-mode service
 tests/Stremio.Core.Tests xUnit tests (run on Linux in CI)
 .github/workflows/       builds, signs and publishes the sideload package
 ```
 
 Building locally (optional, needs Windows with Visual Studio 2022 and the *Universal Windows Platform development*
-workload): open `StremioXbox.sln`, pick **Release | x64**, and deploy to your console with the
+workload): open `Xamlio.sln`, pick **Release | x64**, and deploy to your console with the
 **Remote Machine** target.
 
 ## Limitations
