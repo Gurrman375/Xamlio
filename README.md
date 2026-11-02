@@ -1,5 +1,7 @@
 # Xamlio
 
+[Download Xamlio from the Microsoft Store](https://get.microsoft.com/installer/download/9nk0rm6n126h?referrer=appbadge)
+
 A native Stremio client for **Xbox Series X|S**, written as a UWP app and sideloaded in Dev Mode.
 
 It uses the console's hardware the way the built-in media apps do:
