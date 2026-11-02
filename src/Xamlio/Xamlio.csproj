@@ -19,11 +19,16 @@
     <WindowsXamlEnableOverview>true</WindowsXamlEnableOverview>
     <LangVersion>7.3</LangVersion>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
-    <AppxBundle>Never</AppxBundle>
+    <AppxBundle>Auto</AppxBundle>
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <UapAppxPackageBuildMode>SideloadOnly</UapAppxPackageBuildMode>
     <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
     <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
+    <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+    <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
+    <GenerateTestArtifacts>True</GenerateTestArtifacts>
+    <GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
+    <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -93,6 +98,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\XButton.png" />
+    <None Include="Package.StoreAssociation.xml" />
     <Content Include="Properties\Default.rd.xml" />
     <Content Include="Assets\LockScreenLogo.scale-200.png" />
     <Content Include="Assets\SplashScreen.scale-200.png" />

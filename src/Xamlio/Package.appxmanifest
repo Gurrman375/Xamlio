@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
@@ -6,13 +6,13 @@
   IgnorableNamespaces="uap mp">
 
   <!-- Publisher must match the subject of the signing certificate created in CI. -->
-  <Identity Name="StremioXbox" Publisher="CN=StremioXbox" Version="1.0.0.0" />
+  <Identity Name="GurrDev.Xamlio" Publisher="CN=61735A3D-DF99-461C-9586-16BB027138DC" Version="1.0.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="6b1e2a4c-8d5f-4e3a-9c7b-2f1d0e9a8b71" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
+  <mp:PhoneIdentity PhoneProductId="dc3d5a9c-2dec-4772-965e-a37d799775ae" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
 
   <Properties>
     <DisplayName>Xamlio</DisplayName>
-    <PublisherDisplayName>Xamlio</PublisherDisplayName>
+    <PublisherDisplayName>Gurr_Dev</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
