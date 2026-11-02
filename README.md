@@ -1,10 +1,10 @@
 # Xamlio
 
 ## Download
+<a href="https://get.microsoft.com/installer/download/9nk0rm6n126h?referrer=appbadge" target="_self" >
+	<img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
+</a>
 
-<a href="https://get.microsoft.com/installer/download/9nk0rm6n126h?referrer=appbadge" target="_blank">
-  <strong>Get Xamlio from the Microsoft Store</strong>
-</a> 
 
 A native Stremio client for **Xbox Series X|S**, written as a UWP app and sideloaded in Dev Mode.
 
