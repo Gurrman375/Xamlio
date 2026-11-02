@@ -1,4 +1,4 @@
-# Stremio-Xbox
+# Xamlio
 
 A native Stremio client for **Xbox Series X|S**, written as a UWP app and sideloaded in Dev Mode.
 
