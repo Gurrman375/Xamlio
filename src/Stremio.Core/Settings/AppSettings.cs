@@ -15,7 +15,6 @@ namespace Stremio.Core.Settings
     {
         public static readonly string[] DefaultAddonUrls =
         {
-            "https://v3-cinemeta.strem.io/manifest.json",
             "https://opensubtitles-v3.strem.io/manifest.json",
             "https://watchhub.strem.io/manifest.json",
         };
