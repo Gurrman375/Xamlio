@@ -167,6 +167,7 @@ namespace Xamlio.Views
             {
                 Loading.IsActive = false;
                 Loading.Visibility = Visibility.Collapsed;
+                UpdateJustWatchFallbackVisibility();
             }
 
             ApplyStreamFilter();
@@ -285,6 +286,36 @@ namespace Xamlio.Views
 
             StreamWarning.Visibility =
                 Visibility.Visible;
+        }
+
+        private async void JustWatchButton_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            var title = _args?.Title;
+            if (string.IsNullOrWhiteSpace(title))
+                return;
+
+            var url =
+                "https://www.justwatch.com/us/search?q=" +
+                Uri.EscapeDataString(title);
+
+            await Launcher.LaunchUriAsync(
+                new Uri(url, UriKind.Absolute));
+        }
+
+        private void UpdateJustWatchFallbackVisibility()
+        {
+            var server =
+                AppServices.Settings.StreamingServerUrl;
+
+            var playable = _allStreams.Count(stream =>
+                StreamResolver.IsPlayable(stream, server));
+
+            JustWatchButton.Visibility =
+                playable == 0
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
         }
 
         private async void MarkWatchedButton_Click(

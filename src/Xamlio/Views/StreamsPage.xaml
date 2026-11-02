@@ -68,15 +68,27 @@
                     KeyDown="SourceFilter_KeyDown" />
             </Grid>
 
-            <TextBlock
-                x:Name="StreamWarning"
+            <StackPanel
                 Grid.Row="2"
-                Text="Streaming torrents requires a server URL. Set that up in Settings."
-                Visibility="Collapsed"
-                Foreground="Red"
-                FontWeight="Bold"
-                TextWrapping="Wrap"
-                Margin="0,4,0,8" />
+                Margin="0,4,0,8">
+                <TextBlock
+                    x:Name="StreamWarning"
+                    Text="Streaming torrents requires a server URL. Set that up in Settings."
+                    Visibility="Collapsed"
+                    Foreground="Red"
+                    FontWeight="Bold"
+                    TextWrapping="Wrap" />
+
+                <Button
+                    x:Name="JustWatchButton"
+                    Click="JustWatchButton_Click"
+                    Visibility="Collapsed"
+                    HorizontalAlignment="Left"
+                    Margin="0,6,0,0"
+                    IsTabStop="True">
+                    <TextBlock Text="Find legal options on JustWatch" />
+                </Button>
+            </StackPanel>
 
             <StackPanel
                 Grid.Row="3"

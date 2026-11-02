@@ -2,22 +2,128 @@
     x:Class="Xamlio.Views.SearchPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    IsHitTestVisible="False">
+    RequiresPointer="Never"
+    KeyDown="SearchPage_KeyDown"
+    Loaded="SearchPage_Loaded">
 
-    <Grid Padding="8">
+    <Page.Resources>
+        <ItemsPanelTemplate x:Key="HorizontalPanel">
+            <ItemsStackPanel Orientation="Horizontal" />
+        </ItemsPanelTemplate>
+
+        <DataTemplate x:Key="PosterTemplate">
+            <Grid Width="330" Height="510" Margin="0,0,22,0">
+                <StackPanel>
+                    <Grid Width="308" Height="458" HorizontalAlignment="Left">
+                        <Border Width="300" Height="450" Margin="4"
+                                HorizontalAlignment="Left" VerticalAlignment="Top"
+                                Background="#24213A" CornerRadius="8">
+                            <Image Source="{Binding Poster}" Stretch="UniformToFill" />
+                        </Border>
+
+                        <Border x:Name="PosterFocusRing"
+                                Width="308" Height="458" Margin="0"
+                                HorizontalAlignment="Left" VerticalAlignment="Top"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="0"
+                                CornerRadius="8"
+                                IsHitTestVisible="False" />
+                    </Grid>
+
+                    <TextBlock Width="300" Margin="4,10,0,0"
+                               FontSize="18"
+                               Text="{Binding Name}"
+                               TextTrimming="CharacterEllipsis"
+                               TextWrapping="NoWrap" />
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <Style x:Key="PosterItemContainerStyle" TargetType="ListViewItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+            <Setter Property="UseSystemFocusVisuals" Value="False" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+        </Style>
+    </Page.Resources>
+
+    <Grid Padding="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TextBox x:Name="Query" PlaceholderText="Search movies and series" FontSize="22" MaxWidth="800"
-                 HorizontalAlignment="Left" Width="800" KeyDown="Query_KeyDown" InputScope="Search" />
+        <TextBox x:Name="Query"
+                 Width="800"
+                 MaxWidth="800"
+                 HorizontalAlignment="Left"
+                 FontSize="22"
+                 Header="Search"
+                 PlaceholderText="Search movies and series"
+                 KeyDown="Query_KeyDown"
+                 InputScope="Search" />
 
-        <GridView x:Name="Results" Grid.Row="1" Margin="0,16,0,0" SelectionMode="None" IsItemClickEnabled="True"
-                  ItemTemplate="{StaticResource PosterTemplate}" ItemClick="Results_ItemClick" />
+        <ScrollViewer Grid.Row="1"
+                      Margin="0,18,0,0"
+                      VerticalScrollBarVisibility="Hidden"
+                      HorizontalScrollBarVisibility="Disabled"
+                      IsVerticalScrollChainingEnabled="False">
+            <ItemsControl x:Name="Rows">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Visibility="{Binding RowVisibility}">
+                            <TextBlock Text="{Binding Title}"
+                                       FontSize="26"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,12" />
 
-        <ProgressRing x:Name="Loading" Grid.Row="1" IsActive="False" Width="64" Height="64" />
-        <TextBlock x:Name="Message" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"
-                   Foreground="{StaticResource MutedTextBrush}" Text="Press A on the box above to type, then Menu/Enter to search." />
+                            <ListView ItemsSource="{Binding Items}"
+                                      ItemsPanel="{StaticResource HorizontalPanel}"
+                                      ItemTemplate="{StaticResource PosterTemplate}"
+                                      ItemContainerStyle="{StaticResource PosterItemContainerStyle}"
+                                      SelectionMode="None"
+                                      IsItemClickEnabled="True"
+                                      IsTabStop="True"
+                                      Loaded="SearchList_Loaded"
+                                      KeyDown="SearchList_KeyDown"
+                                      ItemClick="Results_ItemClick"
+                                      ContainerContentChanging="SearchList_ContainerContentChanging"
+                                      XYFocusKeyboardNavigation="Enabled"
+                                      ScrollViewer.HorizontalScrollMode="Enabled"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                      ScrollViewer.VerticalScrollMode="Disabled"
+                                      ScrollViewer.VerticalScrollBarVisibility="Hidden" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <ProgressRing x:Name="Loading"
+                      Grid.Row="1"
+                      Width="64"
+                      Height="64"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      IsActive="False" />
+
+        <TextBlock x:Name="Message"
+                   Grid.Row="1"
+                   MaxWidth="700"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Foreground="{StaticResource MutedTextBrush}"
+                   Text="Press A on the search box to type, then Menu/Enter to search."
+                   TextAlignment="Center"
+                   TextWrapping="Wrap" />
     </Grid>
 </Page>
