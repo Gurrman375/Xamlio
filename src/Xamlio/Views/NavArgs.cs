@@ -15,6 +15,10 @@ namespace Xamlio.Views
         public string VideoId { get; set; }
         public string MetaId { get; set; }
         public string Title { get; set; }
+        public string ShowTitle { get; set; }
+        public string EpisodeTitle { get; set; }
+        public string EpisodeThumbnail { get; set; }
+        public string EpisodeDescription { get; set; }
         public string Background { get; set; }
         public string WatchStatus { get; set; }
         public string PreferredAddonUrl { get; set; }

@@ -44,17 +44,23 @@
                         SelectionChanged="SeasonPicker_SelectionChanged"
                         DropDownClosed="SeasonPicker_DropDownClosed"
                         KeyDown="SeasonPicker_KeyDown" />
-                    <ListView x:Name="Episodes" Grid.Row="1" Margin="0,12,0,0" SelectionMode="None"
-                              IsItemClickEnabled="True" ItemClick="Episodes_ItemClick">
+                    <ListView x:Name="Episodes" Grid.Row="1" Margin="0,12,0,0" SelectionMode="Single"
+                              IsItemClickEnabled="True" ItemClick="Episodes_ItemClick"
+                              SelectionChanged="Episodes_SelectionChanged">
                         <ListView.ItemTemplate>
                             <DataTemplate>
-                                <Grid Padding="0,6" ColumnSpacing="16">
+                                <Grid Padding="0,8" ColumnSpacing="16">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <StackPanel>
+                                    <Border Width="140" Height="78" Background="#2A2840">
+                                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1">
                                         <TextBlock Text="{Binding DisplayTitle}" FontSize="18" />
                                         <TextBlock Text="{Binding Released}" FontSize="13"
                                                    Foreground="{StaticResource MutedTextBrush}" />
@@ -62,9 +68,14 @@
                                                    Visibility="{Binding StatusVisibility}"
                                                    Foreground="{Binding StatusBrush}"
                                                    FontSize="13" />
+                                        <TextBlock Text="{Binding Description}"
+                                                   MaxLines="3"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="14"
+                                                   Foreground="{StaticResource MutedTextBrush}" />
                                     </StackPanel>
 
-                                    <Button Grid.Column="1"
+                                    <Button Grid.Column="2"
                                             Tag="{Binding}"
                                             IsEnabled="{Binding CanMarkWatched}"
                                             Click="MarkWatched_Click"

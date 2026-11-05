@@ -27,6 +27,11 @@
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch">
 
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="440" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -43,11 +48,12 @@
 
             <Grid
                 Grid.Row="1"
+                Grid.Column="1"
                 Margin="0,6,0,0">
 
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="280" />
+                    <ColumnDefinition Width="360" />
                 </Grid.ColumnDefinitions>
 
                 <TextBlock
@@ -60,7 +66,7 @@
                     x:Name="SourceFilter"
                     Grid.Column="1"
                     Header="Source"
-                    MinWidth="260"
+                    MinWidth="320"
                     HorizontalAlignment="Right"
                     IsTabStop="False"
                     SelectionChanged="SourceFilter_SelectionChanged"
@@ -70,6 +76,7 @@
 
             <StackPanel
                 Grid.Row="2"
+                Grid.Column="1"
                 Margin="0,4,0,8">
                 <TextBlock
                     x:Name="StreamWarning"
@@ -92,6 +99,7 @@
 
             <StackPanel
                 Grid.Row="3"
+                Grid.Column="1"
                 Orientation="Horizontal"
                 Spacing="12"
                 Margin="0,0,0,8">
@@ -122,12 +130,38 @@
                 </Button>
             </StackPanel>
 
+            <Border
+                x:Name="EpisodePreviewPanel"
+                Grid.Row="4"
+                Padding="16"
+                Margin="0,12,24,0"
+                VerticalAlignment="Top"
+                Background="#D0181822"
+                CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <Border Height="190" Background="#2A2840">
+                        <Image x:Name="EpisodePreviewImage" Stretch="UniformToFill" />
+                    </Border>
+                    <TextBlock x:Name="EpisodePreviewShowTitle"
+                               FontSize="18"
+                               Foreground="{StaticResource MutedTextBrush}"
+                               TextWrapping="Wrap" />
+                    <TextBlock x:Name="EpisodePreviewTitle"
+                               FontSize="24"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap" />
+                    <TextBlock x:Name="EpisodePreviewDescription"
+                               TextWrapping="Wrap"
+                               MaxLines="12"
+                               Foreground="{StaticResource MutedTextBrush}" />
+                </StackPanel>
+            </Border>
+
             <ListView
                 x:Name="StreamList"
                 Grid.Row="4"
-                Width="1100"
-                MaxWidth="1100"
-                HorizontalAlignment="Right"
+                Grid.Column="1"
+                HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
                 Background="Transparent"

@@ -1,6 +1,8 @@
 using System;
 using System.Net.Http;
+using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using Stremio.Core.Addons;
 using Stremio.Core.Api;
 using Stremio.Core.Settings;
@@ -26,6 +28,52 @@ namespace Xamlio.Services
         public static AppSettings Settings { get; }
         public static StremioApi Api { get; }
         public static AddonManager Addons { get; }
+
+        public static string GetBackgroundImageUrl(string mediaId, string fallback)
+        {
+            var template = Settings.BackgroundImageUrlTemplate;
+            if (string.IsNullOrWhiteSpace(template) ||
+                string.IsNullOrWhiteSpace(mediaId) ||
+                !template.Contains("{id}"))
+                return fallback;
+
+            var url = template.Replace("{id}", Uri.EscapeDataString(mediaId));
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                return fallback;
+
+            return url;
+        }
+
+        public static async Task<string> GetTmdbBackgroundAsync(
+            string imdbId, string fallback)
+        {
+            var apiKey = Settings.TmdbApiKey;
+            if (string.IsNullOrWhiteSpace(apiKey) ||
+                string.IsNullOrWhiteSpace(imdbId))
+                return fallback;
+
+            try
+            {
+                var url = "https://api.themoviedb.org/3/find/" +
+                    Uri.EscapeDataString(imdbId) +
+                    "?api_key=" + Uri.EscapeDataString(apiKey) +
+                    "&external_source=imdb_id&language=en-US";
+                var response = await Http.GetStringAsync(url);
+                var json = JObject.Parse(response);
+                var result = (json["movie_results"] as JArray)?.FirstOrDefault() ??
+                    (json["tv_results"] as JArray)?.FirstOrDefault();
+                var path = result?["backdrop_path"]?.Value<string>();
+                return string.IsNullOrWhiteSpace(path)
+                    ? fallback
+                    : "https://image.tmdb.org/t/p/w1280" + path;
+            }
+            catch (Exception ex)
+            {
+                AppLog.WriteLine("TMDB background lookup failed: " + ex.Message);
+                return fallback;
+            }
+        }
 
         // Loads addons once; pages await this before querying.
         public static Task EnsureAddonsLoadedAsync()

@@ -26,6 +26,8 @@ namespace Xamlio.Views
         public Video Video { get; }
         public string DisplayTitle => Video.DisplayTitle;
         public string Released => Video.Released;
+        public string Thumbnail => Video.Thumbnail;
+        public string Description => Video.Overview;
         public string StatusText { get; set; }
         public string MarkWatchedText =>
             IsWatched ? "Mark as unwatched" : "Mark as watched";
@@ -52,6 +54,7 @@ namespace Xamlio.Views
         private MetaDetail _meta;
         private Dictionary<int, List<Video>> _seasons = new Dictionary<int, List<Video>>();
         private LibraryItem _libraryItem;
+        private string _detailBackground;
         private readonly HashSet<string> _watchedVideoIds =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly DispatcherTimer _gamepadTimer;
@@ -97,7 +100,11 @@ namespace Xamlio.Views
                 .Where(s => !string.IsNullOrEmpty(s)));
             Description.Text = _meta.Description ?? "";
             SetImage(Poster, _meta.Poster);
-            SetImage(Backdrop, _meta.Background);
+            var background = AppServices.GetBackgroundImageUrl(
+                _meta.Id, _meta.Background);
+            _detailBackground = await AppServices.GetTmdbBackgroundAsync(
+                _meta.Id, background);
+            SetImage(Backdrop, _detailBackground);
 
             await LoadWatchStateAsync();
 
@@ -111,11 +118,30 @@ namespace Xamlio.Views
 
             // Season 0 is specials; list it last.
             _seasons = videos.GroupBy(v => v.Season ?? 0).ToDictionary(g => g.Key, g => g.OrderBy(v => v.Episode ?? 0).ToList());
-            SeasonPicker.ItemsSource = _seasons.Keys.OrderBy(s => s == 0 ? int.MaxValue : s)
+            var seasonKeys = _seasons.Keys
+                .OrderBy(s => s == 0 ? int.MaxValue : s)
+                .ToList();
+            SeasonPicker.ItemsSource = seasonKeys
                 .Select(s => s == 0 ? "Specials" : "Season " + s).ToList();
             EpisodesPanel.Visibility = Visibility.Visible;
-            SeasonPicker.SelectedIndex = 0;
+            SeasonPicker.SelectedIndex = FindInitialSeasonIndex(seasonKeys);
             SeasonPicker.Focus(FocusState.Programmatic);
+        }
+
+        private int FindInitialSeasonIndex(List<int> seasonKeys)
+        {
+            if (seasonKeys == null || seasonKeys.Count == 0)
+                return -1;
+
+            // Start at the first season that is not completely watched. This
+            // naturally prefers seasons with no watched episodes, while still
+            // returning to a partially watched season when needed.
+            var nextSeason = seasonKeys
+                .Select((season, index) => new { season, index })
+                .FirstOrDefault(item => !_seasons[item.season].All(video =>
+                    _watchedVideoIds.Contains(video.Id)));
+
+            return nextSeason?.index ?? seasonKeys.Count - 1;
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -175,6 +201,20 @@ namespace Xamlio.Views
                 .ToList();
         }
 
+        private void Episodes_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var row = Episodes.SelectedItem as EpisodeRow;
+            if (AppServices.Settings.UseEpisodeArtworkAsBackground &&
+                !string.IsNullOrWhiteSpace(row?.Thumbnail))
+            {
+                SetImage(Backdrop, row.Thumbnail);
+            }
+            else
+            {
+                SetImage(Backdrop, _detailBackground);
+            }
+        }
+
         private void PlayButton_Click(object sender, RoutedEventArgs e)
         {
             Frame.Navigate(
@@ -212,6 +252,10 @@ namespace Xamlio.Views
                     VideoId = video.Id,
                     MetaId = _meta.Id,
                     Title = title,
+                    ShowTitle = _meta.Name,
+                    EpisodeTitle = video.DisplayTitle,
+                    EpisodeThumbnail = video.Thumbnail,
+                    EpisodeDescription = video.Overview,
                     Background = _meta.Background,
                     WatchStatus = row?.StatusText ?? ""
                 });

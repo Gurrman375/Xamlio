@@ -6,7 +6,7 @@
   IgnorableNamespaces="uap mp">
 
   <!-- Publisher must match the subject of the signing certificate created in CI. -->
-  <Identity Name="GurrDev.Xamlio" Publisher="CN=61735A3D-DF99-461C-9586-16BB027138DC" Version="1.0.2.0" />
+  <Identity Name="GurrDev.Xamlio" Publisher="CN=61735A3D-DF99-461C-9586-16BB027138DC" Version="1.0.27.0" />
 
   <mp:PhoneIdentity PhoneProductId="dc3d5a9c-2dec-4772-965e-a37d799775ae" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
 

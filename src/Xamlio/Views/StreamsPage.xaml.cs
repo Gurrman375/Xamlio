@@ -75,6 +75,18 @@ namespace Xamlio.Views
 
             _args = (StreamsArgs)e.Parameter;
             Header.Text = _args.Title ?? "";
+            if (string.Equals(_args.Type, "series", StringComparison.OrdinalIgnoreCase))
+            {
+                SetEpisodePreview(
+                    _args.ShowTitle,
+                    _args.EpisodeTitle,
+                    _args.EpisodeThumbnail,
+                    _args.EpisodeDescription);
+            }
+            else
+            {
+                EpisodePreviewPanel.Visibility = Visibility.Collapsed;
+            }
 
             if (!string.IsNullOrWhiteSpace(_args.WatchStatus))
             {
@@ -87,7 +99,10 @@ namespace Xamlio.Views
                 EpisodeWatchStatus.Visibility = Visibility.Visible;
             }
 
-            SetImage(Backdrop, _args.Background);
+            var background = AppServices.GetBackgroundImageUrl(
+                _args.MetaId, _args.Background);
+            SetImage(Backdrop, await AppServices.GetTmdbBackgroundAsync(
+                _args.MetaId, background));
 
             _loadCts?.Cancel();
             _loadCts = new CancellationTokenSource();
@@ -108,6 +123,8 @@ namespace Xamlio.Views
             try
             {
                 await AppServices.EnsureAddonsLoadedAsync();
+
+                await LoadEpisodePreviewAsync();
 
                 await LoadEpisodeWatchStateAsync();
 
@@ -434,6 +451,53 @@ namespace Xamlio.Views
             MarkWatchedButtonText.Text = isWatched
                 ? "Mark as unwatched"
                 : "Mark as watched";
+        }
+
+        private async Task LoadEpisodePreviewAsync()
+        {
+            if (!string.Equals(_args?.Type, "series", StringComparison.OrdinalIgnoreCase) ||
+                string.IsNullOrWhiteSpace(_args?.MetaId) ||
+                string.IsNullOrWhiteSpace(_args?.VideoId))
+                return;
+
+            try
+            {
+                var meta = await AppServices.Addons.GetMetaAsync(
+                    _args.Type, _args.MetaId);
+                var video = (meta?.Videos ?? new List<Video>()).FirstOrDefault(item =>
+                    string.Equals(item.Id, _args.VideoId, StringComparison.OrdinalIgnoreCase));
+                if (video == null)
+                    return;
+
+                SetEpisodePreview(
+                    meta.Name,
+                    video.DisplayTitle,
+                    video.Thumbnail,
+                    video.Overview);
+            }
+            catch (Exception ex)
+            {
+                AppLog.WriteLine("Stream episode preview failed: " + ex.Message);
+            }
+        }
+
+        private void SetEpisodePreview(
+            string showTitle,
+            string episodeTitle,
+            string thumbnail,
+            string description)
+        {
+            EpisodePreviewPanel.Visibility = string.IsNullOrWhiteSpace(episodeTitle)
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+            EpisodePreviewShowTitle.Text = showTitle ?? "";
+            EpisodePreviewTitle.Text = episodeTitle ?? "";
+            EpisodePreviewDescription.Text = description ??
+                "No episode description available.";
+            EpisodePreviewImage.Source = null;
+
+            if (Uri.TryCreate(thumbnail, UriKind.Absolute, out var uri))
+                EpisodePreviewImage.Source = new BitmapImage(uri);
         }
 
         private void UpdateStreamWarningVisibility()

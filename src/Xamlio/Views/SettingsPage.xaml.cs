@@ -52,6 +52,13 @@ namespace Xamlio.Views
             ServerUrl.Text =
                 settings.StreamingServerUrl ?? "";
 
+            BackgroundImageUrlTemplate.Text =
+                settings.BackgroundImageUrlTemplate ?? "";
+
+            TmdbApiKey.Password = settings.TmdbApiKey ?? "";
+            UseEpisodeArtworkAsBackground.IsOn =
+                settings.UseEpisodeArtworkAsBackground;
+
             SubtitleLang.ItemsSource = Languages;
             AudioLang.ItemsSource = Languages;
 
@@ -219,6 +226,30 @@ namespace Xamlio.Views
         {
             AppServices.Settings.StreamingServerUrl =
                 ServerUrl.Text.Trim();
+        }
+
+        private void BackgroundImageUrlTemplate_LostFocus(
+            object sender,
+            RoutedEventArgs e)
+        {
+            AppServices.Settings.BackgroundImageUrlTemplate =
+                BackgroundImageUrlTemplate.Text.Trim();
+        }
+
+        private void TmdbApiKey_LostFocus(
+            object sender,
+            RoutedEventArgs e)
+        {
+            AppServices.Settings.TmdbApiKey = TmdbApiKey.Password.Trim();
+        }
+
+        private void UseEpisodeArtworkAsBackground_Toggled(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (!_initializing)
+                AppServices.Settings.UseEpisodeArtworkAsBackground =
+                    UseEpisodeArtworkAsBackground.IsOn;
         }
 
         private void SubtitleLang_SelectionChanged(
