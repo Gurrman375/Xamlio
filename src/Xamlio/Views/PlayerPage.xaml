@@ -16,6 +16,17 @@
             Height="72"
             IsActive="True" />
 
+        <TextBlock
+            x:Name="SeekStatusText"
+            MaxWidth="800"
+            Margin="0,120,0,0"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            FontSize="20"
+            TextAlignment="Center"
+            TextWrapping="Wrap"
+            Visibility="Collapsed" />
+
         <Grid
             x:Name="Overlay"
             Padding="64,24,64,40"
@@ -81,7 +92,9 @@
                     x:Name="BackButton"
                     Click="Rewind_Click"
                     ToolTipService.ToolTip="Back 10s">
-                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xEB9E;" />
+                    <FontIcon
+                        FontFamily="Segoe MDL2 Assets"
+                        Glyph="&#xEB9E;" />
                 </Button>
 
                 <Button
@@ -96,13 +109,17 @@
                     x:Name="ForwardButton"
                     Click="Forward_Click"
                     ToolTipService.ToolTip="Forward 30s">
-                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xEB9D;" />
+                    <FontIcon
+                        FontFamily="Segoe MDL2 Assets"
+                        Glyph="&#xEB9D;" />
                 </Button>
 
                 <Button
                     x:Name="AudioButton"
                     ToolTipService.ToolTip="Audio">
-                    <SymbolIcon Symbol="Volume" />
+                    <FontIcon
+                        FontFamily="Segoe MDL2 Assets"
+                        Glyph="&#xE774;" />
                     <Button.Flyout>
                         <MenuFlyout
                             x:Name="AudioMenu"
@@ -131,6 +148,14 @@
                             x:Name="ChapterMenu"
                             Opening="ChapterMenu_Opening" />
                     </Button.Flyout>
+                </Button>
+
+                <Button
+                    x:Name="NextEpisodeButton"
+                    Click="NextEpisode_Click"
+                    ToolTipService.ToolTip="Next episode"
+                    Visibility="Collapsed">
+                    <SymbolIcon Symbol="Next" />
                 </Button>
             </StackPanel>
 

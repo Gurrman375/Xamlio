@@ -18,6 +18,7 @@ namespace Xamlio
         public App()
         {
             InitializeComponent();
+            AppLog.Initialize();
             RequiresPointerMode =
                 ApplicationRequiresPointerMode.WhenRequested;
             ApplicationViewScaling.TrySetDisableLayoutScaling(true);

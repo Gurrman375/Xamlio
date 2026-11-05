@@ -99,6 +99,7 @@ namespace Stremio.Core.Addons
 
         // Filled in by the client, not part of the protocol.
         [JsonIgnore] public string AddonName { get; set; }
+        [JsonIgnore] public string AddonUrl { get; set; }
 
         [JsonIgnore]
         public string Label

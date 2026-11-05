@@ -17,6 +17,7 @@ namespace Xamlio.Views
         public string Title { get; set; }
         public string Background { get; set; }
         public string WatchStatus { get; set; }
+        public string PreferredAddonUrl { get; set; }
     }
 
     public class PlayerArgs
@@ -32,5 +33,8 @@ namespace Xamlio.Views
 
         // Taken from the stream's name/title; libVLC 3 doesn't report the transfer function.
         public bool LooksHdr { get; set; }
+        public string AddonName { get; set; }
+        public string AddonUrl { get; set; }
+        public string StreamTitle { get; set; }
     }
 }

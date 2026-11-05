@@ -260,7 +260,7 @@ namespace Xamlio.Views
             catch (Exception ex)
             {
                 // Keep the episode unchanged when the server update fails.
-                Debug.WriteLine("Mark watched failed: " + ex.Message);
+                AppLog.WriteLine("Mark watched failed: " + ex.Message);
             }
         }
 

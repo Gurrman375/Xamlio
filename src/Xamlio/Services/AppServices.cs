@@ -14,6 +14,7 @@ namespace Xamlio.Services
 
         static AppServices()
         {
+            StremioApi.LogWriter = AppLog.WriteLine;
             Http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
             Http.DefaultRequestHeaders.UserAgent.ParseAdd("Xamlio/1.0");
             Settings = new AppSettings(new LocalSettingsStore());

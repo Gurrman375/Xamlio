@@ -177,38 +177,88 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-      - name: Publish latest release
+      - name: Publish versioned release
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view latest *> $null
-
-          if ($LASTEXITCODE -eq 0)
-          {
-              gh release delete latest --yes --cleanup-tag
-          }
-
           $title = "Xamlio $env:PACKAGE_VERSION"
+          $tag = "v$env:PACKAGE_VERSION"
 
           $notes = @"
-          Build $env:PACKAGE_VERSION
-          Commit: ${{ github.sha }}
+          ## Download Xamlio
 
-          Install through Xbox Device Portal:
+          <a href="https://apps.microsoft.com/detail/9nk0rm6n126h?hl=en-US&gl=US">
+            <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200" />
+          </a>
+
+          Or download the signed package files below and install them through Xbox Device Portal:
           1. Select the Xamlio app package.
           2. Add the other .appx files as dependencies.
           3. Install Xamlio.cer if the certificate is requested.
+
+          ## Changelog
+
+          ### Playback and stability
+
+          - Added safer chapter seeking with queued/latest-wins seek handling.
+          - Prevented failed MKV seeks from being mistaken for episode completion.
+          - Prevented false `EndReached` events after failed chapter seeks from starting the next episode.
+          - Added visible seek status and error messages below the loading indicator.
+          - Added explicit player teardown when leaving playback, including preload cancellation and LibVLC disposal.
+          - Added next-episode stream preparation without creating a second media player or starting playback.
+          - Disabled hardware decoding by default for improved Xbox stability.
+          - Added memory diagnostics using the UWP app memory report.
+
+          ### Audio and subtitles
+
+          - Added preferred audio language settings.
+          - Added preferred subtitle language settings.
+          - Added an option to enable preferred subtitles by default.
+          - Added optional Signs and Songs subtitle preference.
+          - Reduced subtitle loading to the preferred track by default.
+          - Added on-demand loading for additional subtitle tracks.
+          - Added subtitle track refresh after selection so the current cue appears immediately.
+          - Added audio and subtitle diagnostics while switching tracks.
+
+          ### Xbox controls and player interface
+
+          - D-pad left/right now remains available for player UI focus navigation.
+          - Bumpers navigate backward and forward by chapter.
+          - Chapter Back now targets the previous chapter boundary instead of the current chapter start.
+          - Added chapter diagnostics with current and target chapter information.
+          - Updated player controls with Segoe MDL2 Assets icons.
+          - Updated the audio control to use the globe icon.
+          - Added a next-episode button when another episode is available.
+
+          ### Diagnostics and privacy
+
+          - Replaced direct debug output with rotating app log files in the app LocalState folder.
+          - Redacted authentication keys and sensitive extension URL data from API diagnostics.
+          - API response logs now record status and byte counts instead of full response bodies.
+          - Added LibVLC decoder, seek, subtitle, preload, lifecycle, and memory diagnostics.
+          - Added memory budget warnings at 80% and critical warnings at 90% of the reported limit.
+
+          ### Build and release improvements
+
+          - GitHub releases now use unique version tags and preserve previous builds.
+          - Added Microsoft Store download link and badge to every release.
+
+          Build $env:PACKAGE_VERSION
+          Commit: ${{ github.sha }}
           "@
+
+          $notesPath = Join-Path $env:RUNNER_TEMP "release-notes.md"
+          [System.IO.File]::WriteAllText($notesPath, $notes)
 
           $files = Get-ChildItem dist -File |
             ForEach-Object {
               $_.FullName
             }
 
-          gh release create latest `
+          gh release create $tag `
             $files `
             --title $title `
-            --notes $notes `
+            --notes-file $notesPath `
             --target ${{ github.sha }}

@@ -63,6 +63,7 @@
     <Compile Include="Services\AppServices.cs" />
     <Compile Include="Services\DisplayModeService.cs" />
     <Compile Include="Services\LocalSettingsStore.cs" />
+    <Compile Include="Services\AppLog.cs" />
     <Compile Include="Views\BoardPage.xaml.cs">
       <DependentUpon>BoardPage.xaml</DependentUpon>
     </Compile>

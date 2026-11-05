@@ -52,6 +52,24 @@ namespace Stremio.Core.Settings
             set { _store.Set("subtitleLang", value); }
         }
 
+        public string PreferredAudioLanguage
+        {
+            get { return _store.Get("audioLang") ?? "eng"; }
+            set { _store.Set("audioLang", value); }
+        }
+
+        public bool SubtitlesEnabled
+        {
+            get { return _store.Get("subtitlesEnabled") == "true"; }
+            set { _store.Set("subtitlesEnabled", value ? "true" : "false"); }
+        }
+
+        public bool PreferSignsAndSongs
+        {
+            get { return _store.Get("preferSignsAndSongs") == "true"; }
+            set { _store.Set("preferSignsAndSongs", value ? "true" : "false"); }
+        }
+
         public bool AudioPassthrough
         {
             get { return _store.Get("audioPassthrough") == "true"; }

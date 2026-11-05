@@ -14,6 +14,7 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 
 namespace Xamlio.Views
@@ -37,6 +38,7 @@ namespace Xamlio.Views
         public string Id => Item.Id;
         public string Type => Item.Type;
         public string Poster => Item.Poster;
+        public ImageSource PosterImage { get; }
         public string Name => Playback?.Title ?? Item.Name;
         public bool IsContinueWatching => Playback != null;
         public string PlaybackVideoId => Playback?.VideoId ?? Item.Id;
@@ -48,12 +50,35 @@ namespace Xamlio.Views
                 ? 0
                 : 300.0 * Math.Min(1.0, (double)Playback.TimeMs / Playback.Duration);
 
-        public LibraryCard(LibraryItem item) { Item = item; }
+        public LibraryCard(LibraryItem item)
+        {
+            Item = item;
+            PosterImage = CreatePosterImage(item?.Poster);
+        }
 
         public LibraryCard(LibraryItem item, SavedPlaybackState playback)
         {
             Item = item;
             Playback = playback;
+            PosterImage = CreatePosterImage(item?.Poster);
+        }
+
+        private static ImageSource CreatePosterImage(string url)
+        {
+            if (!Uri.TryCreate(
+                    url,
+                    UriKind.Absolute,
+                    out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp &&
+                 uri.Scheme != Uri.UriSchemeHttps))
+            {
+                return null;
+            }
+
+            return new BitmapImage
+            {
+                UriSource = uri
+            };
         }
     }
 

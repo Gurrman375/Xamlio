@@ -53,12 +53,21 @@ namespace Xamlio.Views
                 settings.StreamingServerUrl ?? "";
 
             SubtitleLang.ItemsSource = Languages;
+            AudioLang.ItemsSource = Languages;
 
             SubtitleLang.SelectedItem =
                 Languages.Contains(
                     settings.PreferredSubtitleLanguage)
                     ? settings.PreferredSubtitleLanguage
                     : "eng";
+
+            AudioLang.SelectedItem =
+                Languages.Contains(settings.PreferredAudioLanguage)
+                    ? settings.PreferredAudioLanguage
+                    : "eng";
+
+            SubtitlesEnabled.IsOn = settings.SubtitlesEnabled;
+            PreferSignsAndSongs.IsOn = settings.PreferSignsAndSongs;
 
             Passthrough.IsOn =
                 settings.AudioPassthrough;
@@ -222,6 +231,33 @@ namespace Xamlio.Views
                 AppServices.Settings
                     .PreferredSubtitleLanguage = language;
             }
+        }
+
+        private void AudioLang_SelectionChanged(
+            object sender,
+            SelectionChangedEventArgs e)
+        {
+            if (!_initializing &&
+                AudioLang.SelectedItem is string language)
+            {
+                AppServices.Settings.PreferredAudioLanguage = language;
+            }
+        }
+
+        private void SubtitlesEnabled_Toggled(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (!_initializing)
+                AppServices.Settings.SubtitlesEnabled = SubtitlesEnabled.IsOn;
+        }
+
+        private void PreferSignsAndSongs_Toggled(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (!_initializing)
+                AppServices.Settings.PreferSignsAndSongs = PreferSignsAndSongs.IsOn;
         }
 
         private void Passthrough_Toggled(

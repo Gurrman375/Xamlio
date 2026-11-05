@@ -128,6 +128,22 @@
                     Width="300"
                     SelectionChanged="SubtitleLang_SelectionChanged" />
 
+                <ComboBox
+                    x:Name="AudioLang"
+                    Header="Preferred audio language"
+                    Width="300"
+                    SelectionChanged="AudioLang_SelectionChanged" />
+
+                <ToggleSwitch
+                    x:Name="SubtitlesEnabled"
+                    Header="Enable preferred subtitles by default"
+                    Toggled="SubtitlesEnabled_Toggled" />
+
+                <ToggleSwitch
+                    x:Name="PreferSignsAndSongs"
+                    Header="Prefer signs and songs subtitles"
+                    Toggled="PreferSignsAndSongs_Toggled" />
+
                 <ToggleSwitch
                     x:Name="Passthrough"
                     Header="Audio passthrough (Dolby/DTS to TV or receiver)"

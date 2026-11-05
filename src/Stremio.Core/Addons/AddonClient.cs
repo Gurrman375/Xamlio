@@ -39,14 +39,24 @@ namespace Stremio.Core.Addons
             return response?.Meta;
         }
 
-        public async Task<List<Stream>> GetStreamsAsync(InstalledAddon addon, string type, string id,
+        public async Task<List<Stream>> GetStreamsAsync(
+            InstalledAddon addon,
+            string type,
+            string id,
             CancellationToken ct = default(CancellationToken))
         {
             var response = await GetJsonAsync<StreamsResponse>(
-                BuildUrl(addon, "stream", type, id, null), ct).ConfigureAwait(false);
+                BuildUrl(addon, "stream", type, id, null),
+                ct).ConfigureAwait(false);
+
             var streams = response?.Streams ?? new List<Stream>();
-            foreach (var s in streams)
-                s.AddonName = addon.Manifest?.Name;
+
+            foreach (var stream in streams)
+            {
+                stream.AddonName = addon.Manifest?.Name;
+                stream.AddonUrl = addon.TransportUrl;
+            }
+
             return streams;
         }
 

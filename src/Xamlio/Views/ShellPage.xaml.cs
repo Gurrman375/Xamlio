@@ -145,6 +145,28 @@ namespace Xamlio.Views
             });
         }
 
+        public void NavigateFromPlayerToStreams(StreamsArgs args)
+        {
+            if (args == null)
+                return;
+
+            ContentFrame.Navigate(typeof(StreamsPage), args);
+        }
+
+        public void NavigateFromPlayerToEpisodeList(PlayerArgs args)
+        {
+            if (args == null || string.IsNullOrWhiteSpace(args.MetaId))
+                return;
+
+            ContentFrame.Navigate(
+                typeof(DetailPage),
+                new MetaArgs
+                {
+                    Type = args.Type,
+                    Id = args.MetaId
+                });
+        }
+
         private void Nav_SelectionChanged(
             NavigationView sender,
             NavigationViewSelectionChangedEventArgs args)

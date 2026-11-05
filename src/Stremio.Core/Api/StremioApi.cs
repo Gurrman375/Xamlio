@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -14,6 +13,7 @@ namespace Stremio.Core.Api
 {
     public class StremioApi
     {
+        public static Action<string> LogWriter { get; set; }
         public const string DefaultEndpoint =
             "https://api.strem.io/api/";
 
@@ -293,12 +293,8 @@ namespace Stremio.Core.Api
                     .ReadAsStringAsync()
                     .ConfigureAwait(false);
 
-                System.Diagnostics.Debug.WriteLine(
-                    "QR create response status: " +
-                    response.StatusCode);
-
-                System.Diagnostics.Debug.WriteLine(
-                    "QR create response body: " + text);
+                Log("QR create response status: " + response.StatusCode +
+                    ", bytes=" + text.Length);
 
                 response.EnsureSuccessStatusCode();
 
@@ -377,8 +373,7 @@ namespace Stremio.Core.Api
                     .ReadAsStringAsync()
                     .ConfigureAwait(false);
 
-                System.Diagnostics.Debug.WriteLine(
-                    "QR read response: " + text);
+                Log("QR read response bytes=" + text.Length);
 
                 response.EnsureSuccessStatusCode();
 
@@ -461,6 +456,8 @@ namespace Stremio.Core.Api
                         string.Equals(property.Name, "password",
                             StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(property.Name, "accessToken",
+                            StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(property.Name, "transportUrl",
                             StringComparison.OrdinalIgnoreCase))
                     {
                         property.Value = "<redacted>";
@@ -493,7 +490,7 @@ namespace Stremio.Core.Api
             if (debugBody["authKey"] != null)
                 debugBody["authKey"] = "<redacted>";
 
-            Debug.WriteLine(
+            Log(
                 "[StremioApi] REQUEST " + method +
                 " body=" + debugBody.ToString(Formatting.None));
 
@@ -511,11 +508,11 @@ namespace Stremio.Core.Api
                     .ReadAsStringAsync()
                     .ConfigureAwait(false);
 
-                Debug.WriteLine(
+                Log(
                     "[StremioApi] RESPONSE " + method +
                     " status=" + (int)response.StatusCode +
                     " " + response.StatusCode +
-                    " body=" + RedactSecrets(text));
+                    " bytes=" + text.Length);
 
                 var json = JObject.Parse(text);
                 var error = json["error"];
@@ -530,6 +527,11 @@ namespace Stremio.Core.Api
 
                 return json["result"];
             }
+        }
+
+        private static void Log(string message)
+        {
+            LogWriter?.Invoke(message);
         }
     }
 

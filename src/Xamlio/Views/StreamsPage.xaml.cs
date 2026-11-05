@@ -1,7 +1,6 @@
 ﻿using Stremio.Core.Addons;
 using Stremio.Core.Api;
 using Stremio.Core.Streaming;
-using Xamlio.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -19,13 +18,13 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
+using Xamlio.Services;
 
 namespace Xamlio.Views
 {
     public sealed partial class StreamsPage : Page
     {
         private StreamsArgs _args;
-        private Task<List<Subtitle>> _subtitles;
 
         private readonly List<Stream> _allStreams =
             new List<Stream>();
@@ -112,11 +111,7 @@ namespace Xamlio.Views
 
                 await LoadEpisodeWatchStateAsync();
 
-                _subtitles = AppServices.Addons.GetSubtitlesAsync(
-                    _args.Type,
-                    _args.VideoId);
-
-                var progress =
+                IProgress<List<Stream>> progress =
                     new Progress<List<Stream>>(batch =>
                     {
                         foreach (var stream in batch)
@@ -167,7 +162,6 @@ namespace Xamlio.Views
             {
                 Loading.IsActive = false;
                 Loading.Visibility = Visibility.Collapsed;
-                UpdateJustWatchFallbackVisibility();
             }
 
             ApplyStreamFilter();
@@ -226,18 +220,11 @@ namespace Xamlio.Views
                 return;
             }
 
+            // Addon subtitles are loaded from the player only when requested.
+            // This avoids unnecessary subtitle requests and prevents LibVLC from
+            // attaching a large number of subtitle tracks at startup.
             var subtitles =
-                new List<Subtitle>(resolved.Subtitles);
-
-            try
-            {
-                if (_subtitles != null)
-                    subtitles.AddRange(await _subtitles);
-            }
-            catch
-            {
-                // Play without addon subtitles.
-            }
+                new List<Subtitle>(resolved.Subtitles ?? new List<Subtitle>());
 
             var text =
                 (stream.Name ?? "") + " " +
@@ -255,6 +242,9 @@ namespace Xamlio.Views
                 Headers = resolved.Headers,
                 Title = _args.Title,
                 Background = _args.Background,
+                AddonName = stream.AddonName,
+                AddonUrl = stream.AddonUrl,
+                StreamTitle = stream.Label,
                 Subtitles = subtitles,
                 LooksHdr =
                     text.Contains("HDR") ||
@@ -302,20 +292,6 @@ namespace Xamlio.Views
 
             await Launcher.LaunchUriAsync(
                 new Uri(url, UriKind.Absolute));
-        }
-
-        private void UpdateJustWatchFallbackVisibility()
-        {
-            var server =
-                AppServices.Settings.StreamingServerUrl;
-
-            var playable = _allStreams.Count(stream =>
-                StreamResolver.IsPlayable(stream, server));
-
-            JustWatchButton.Visibility =
-                playable == 0
-                    ? Visibility.Visible
-                    : Visibility.Collapsed;
         }
 
         private async void MarkWatchedButton_Click(
@@ -432,7 +408,7 @@ namespace Xamlio.Views
             catch (Exception ex)
             {
                 // Keep the current state if the server update fails.
-                Debug.WriteLine("Stream watch toggle failed: " + ex.Message);
+                AppLog.WriteLine("Stream watch toggle failed: " + ex.Message);
             }
         }
 
