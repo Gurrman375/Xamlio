@@ -43,6 +43,7 @@ namespace Xamlio.Views
         private List<Video> _episodeVideos = new List<Video>();
         private HashSet<string> _watchedVideoIds =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private string _episodePreviewThumbnail;
 
         public StreamsPage()
         {
@@ -99,10 +100,8 @@ namespace Xamlio.Views
                 EpisodeWatchStatus.Visibility = Visibility.Visible;
             }
 
-            var background = AppServices.GetBackgroundImageUrl(
-                _args.MetaId, _args.Background);
             SetImage(Backdrop, await AppServices.GetTmdbBackgroundAsync(
-                _args.MetaId, background));
+                _args.MetaId, _args.Background));
 
             _loadCts?.Cancel();
             _loadCts = new CancellationTokenSource();
@@ -373,6 +372,7 @@ namespace Xamlio.Views
 
                 MarkWatchedButton.Visibility = Visibility.Visible;
                 UpdateEpisodeWatchStatus();
+                ApplyEpisodePreviewImage();
             }
             catch (Exception)
             {
@@ -420,7 +420,9 @@ namespace Xamlio.Views
                 if (_libraryItem.State == null)
                     _libraryItem.State = new LibraryItemState();
                 _libraryItem.State.Watched = watched;
+                _args.WatchStatus = isWatched ? "Not watched" : "Watched";
                 UpdateEpisodeWatchStatus();
+                ApplyEpisodePreviewImage();
             }
             catch (Exception ex)
             {
@@ -494,10 +496,33 @@ namespace Xamlio.Views
             EpisodePreviewTitle.Text = episodeTitle ?? "";
             EpisodePreviewDescription.Text = description ??
                 "No episode description available.";
-            EpisodePreviewImage.Source = null;
+            _episodePreviewThumbnail = thumbnail;
+            ApplyEpisodePreviewImage();
+        }
 
-            if (Uri.TryCreate(thumbnail, UriKind.Absolute, out var uri))
-                EpisodePreviewImage.Source = new BitmapImage(uri);
+        private void ApplyEpisodePreviewImage()
+        {
+            EpisodePreviewImage.Source = null;
+            if (!Uri.TryCreate(
+                    _episodePreviewThumbnail,
+                    UriKind.Absolute,
+                    out var uri))
+                return;
+
+            var isWatched = _watchedVideoIds.Contains(_args?.VideoId ?? "") ||
+                string.Equals(
+                    _args?.WatchStatus,
+                    "Watched",
+                    StringComparison.OrdinalIgnoreCase);
+            var image = new BitmapImage();
+            if (AppServices.Settings.BlurUnwatchedEpisodeImages && !isWatched)
+            {
+                image.DecodePixelWidth = 64;
+                image.DecodePixelHeight = 36;
+            }
+
+            image.UriSource = uri;
+            EpisodePreviewImage.Source = image;
         }
 
         private void UpdateStreamWarningVisibility()

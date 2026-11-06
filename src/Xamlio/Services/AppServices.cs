@@ -29,22 +29,6 @@ namespace Xamlio.Services
         public static StremioApi Api { get; }
         public static AddonManager Addons { get; }
 
-        public static string GetBackgroundImageUrl(string mediaId, string fallback)
-        {
-            var template = Settings.BackgroundImageUrlTemplate;
-            if (string.IsNullOrWhiteSpace(template) ||
-                string.IsNullOrWhiteSpace(mediaId) ||
-                !template.Contains("{id}"))
-                return fallback;
-
-            var url = template.Replace("{id}", Uri.EscapeDataString(mediaId));
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
-                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-                return fallback;
-
-            return url;
-        }
-
         public static async Task<string> GetTmdbBackgroundAsync(
             string imdbId, string fallback)
         {

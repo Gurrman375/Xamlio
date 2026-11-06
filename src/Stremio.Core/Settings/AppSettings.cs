@@ -46,23 +46,16 @@ namespace Stremio.Core.Settings
             set { _store.Set("streamingServerUrl", string.IsNullOrWhiteSpace(value) ? null : value.Trim()); }
         }
 
-        // Optional HTTPS image URL template. Use {id} for the media identifier.
-        public string BackgroundImageUrlTemplate
-        {
-            get { return _store.Get("backgroundImageUrlTemplate"); }
-            set { _store.Set("backgroundImageUrlTemplate", string.IsNullOrWhiteSpace(value) ? null : value.Trim()); }
-        }
-
         public string TmdbApiKey
         {
             get { return _store.Get("tmdbApiKey"); }
             set { _store.Set("tmdbApiKey", string.IsNullOrWhiteSpace(value) ? null : value.Trim()); }
         }
 
-        public bool UseEpisodeArtworkAsBackground
+        public bool BlurUnwatchedEpisodeImages
         {
-            get { return _store.Get("episodeArtworkBackground") == "true"; }
-            set { _store.Set("episodeArtworkBackground", value ? "true" : "false"); }
+            get { return _store.Get("blurUnwatchedEpisodeImages") == "true"; }
+            set { _store.Set("blurUnwatchedEpisodeImages", value ? "true" : "false"); }
         }
 
         public string PreferredSubtitleLanguage

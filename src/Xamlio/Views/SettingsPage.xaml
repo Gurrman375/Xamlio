@@ -122,20 +122,6 @@
                     TextWrapping="Wrap"
                     Text="Torrents need the Stremio streaming server running on another device on your network. Debrid and direct links play without it." />
 
-                <TextBox
-                    x:Name="BackgroundImageUrlTemplate"
-                    Header="Background image server URL template (optional)"
-                    PlaceholderText="https://example.com/images/{id}.jpg"
-                    Width="600"
-                    HorizontalAlignment="Left"
-                    InputScope="Url"
-                    LostFocus="BackgroundImageUrlTemplate_LostFocus" />
-
-                <TextBlock
-                    Foreground="{StaticResource MutedTextBrush}"
-                    TextWrapping="Wrap"
-                    Text="Use {id} for the media ID. Leave blank to use the artwork supplied by the metadata addon. A custom server or proxy must provide the image and handle any provider authentication." />
-
                 <PasswordBox
                     x:Name="TmdbApiKey"
                     Header="TMDB API key (optional)"
@@ -149,9 +135,9 @@
                     Text="When set, TMDB supplies show and movie backgrounds using the IMDb ID. Leave blank to use the metadata addon artwork." />
 
                 <ToggleSwitch
-                    x:Name="UseEpisodeArtworkAsBackground"
-                    Header="Use selected episode artwork as background"
-                    Toggled="UseEpisodeArtworkAsBackground_Toggled" />
+                    x:Name="BlurUnwatchedEpisodeImages"
+                    Header="Blur unwatched episode images"
+                    Toggled="BlurUnwatchedEpisodeImages_Toggled" />
 
                 <ComboBox
                     x:Name="SubtitleLang"

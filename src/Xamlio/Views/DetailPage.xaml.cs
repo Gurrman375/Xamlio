@@ -27,6 +27,7 @@ namespace Xamlio.Views
         public string DisplayTitle => Video.DisplayTitle;
         public string Released => Video.Released;
         public string Thumbnail => Video.Thumbnail;
+        public ImageSource ThumbnailImage { get; }
         public string Description => Video.Overview;
         public string StatusText { get; set; }
         public string MarkWatchedText =>
@@ -42,9 +43,28 @@ namespace Xamlio.Views
                 ? new SolidColorBrush(Color.FromArgb(255, 192, 32, 255))
                 : new SolidColorBrush(Colors.White);
 
-        public EpisodeRow(Video video)
+        public EpisodeRow(Video video, bool blurThumbnail)
         {
             Video = video;
+            ThumbnailImage = CreateThumbnailImage(video?.Thumbnail, blurThumbnail);
+        }
+
+        private static ImageSource CreateThumbnailImage(string url, bool blur)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                return null;
+
+            var image = new BitmapImage();
+            if (blur)
+            {
+                // A very small decode produces a soft, privacy-preserving
+                // preview when enlarged into the episode thumbnail slot.
+                image.DecodePixelWidth = 32;
+                image.DecodePixelHeight = 18;
+            }
+
+            image.UriSource = uri;
+            return image;
         }
     }
 
@@ -100,10 +120,8 @@ namespace Xamlio.Views
                 .Where(s => !string.IsNullOrEmpty(s)));
             Description.Text = _meta.Description ?? "";
             SetImage(Poster, _meta.Poster);
-            var background = AppServices.GetBackgroundImageUrl(
-                _meta.Id, _meta.Background);
             _detailBackground = await AppServices.GetTmdbBackgroundAsync(
-                _meta.Id, background);
+                _meta.Id, _meta.Background);
             SetImage(Backdrop, _detailBackground);
 
             await LoadWatchStateAsync();
@@ -199,20 +217,6 @@ namespace Xamlio.Views
             Episodes.ItemsSource = _seasons[season]
                 .Select(BuildEpisodeRow)
                 .ToList();
-        }
-
-        private void Episodes_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            var row = Episodes.SelectedItem as EpisodeRow;
-            if (AppServices.Settings.UseEpisodeArtworkAsBackground &&
-                !string.IsNullOrWhiteSpace(row?.Thumbnail))
-            {
-                SetImage(Backdrop, row.Thumbnail);
-            }
-            else
-            {
-                SetImage(Backdrop, _detailBackground);
-            }
         }
 
         private void PlayButton_Click(object sender, RoutedEventArgs e)
@@ -358,7 +362,10 @@ namespace Xamlio.Views
 
         private EpisodeRow BuildEpisodeRow(Video video)
         {
-            var row = new EpisodeRow(video)
+            var row = new EpisodeRow(
+                video,
+                AppServices.Settings.BlurUnwatchedEpisodeImages &&
+                !_watchedVideoIds.Contains(video?.Id))
             {
                 IsWatched = _watchedVideoIds.Contains(video.Id)
             };
