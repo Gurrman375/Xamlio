@@ -210,7 +210,7 @@ jobs:
 
           ## Changelog
 
-$changelog
+          $changelog
 
           Build $env:PACKAGE_VERSION
           Commit: ${{ github.sha }}
