@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
+using Windows.Storage.Pickers;
 
 namespace Xamlio.Views
 {
@@ -55,6 +57,8 @@ namespace Xamlio.Views
             TmdbApiKey.Password = settings.TmdbApiKey ?? "";
             BlurUnwatchedEpisodeImages.IsOn =
                 settings.BlurUnwatchedEpisodeImages;
+            ShowMemoryUsage.IsOn =
+                settings.ShowMemoryUsage;
 
             SubtitleLang.ItemsSource = Languages;
             AudioLang.ItemsSource = Languages;
@@ -81,6 +85,12 @@ namespace Xamlio.Views
 
             TvSafeMarginsToggle.IsOn =
                 settings.UseTvSafeMargin;
+
+            LoggingEnabled.IsOn = settings.LoggingEnabled;
+            ApplyDiagnosticsState();
+
+            ReleaseReminders.IsOn =
+                settings.ReleaseRemindersEnabled;
 
             _initializing = false;
 
@@ -241,6 +251,80 @@ namespace Xamlio.Views
                     BlurUnwatchedEpisodeImages.IsOn;
         }
 
+        private void ShowMemoryUsage_Toggled(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (!_initializing && LoggingEnabled.IsOn)
+                AppServices.Settings.ShowMemoryUsage =
+                    ShowMemoryUsage.IsOn;
+        }
+
+        private void LoggingEnabled_Toggled(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (_initializing)
+                return;
+
+            var enabled = LoggingEnabled.IsOn;
+            AppServices.Settings.LoggingEnabled = enabled;
+            if (!enabled)
+                AppServices.Settings.ShowMemoryUsage = false;
+
+            AppLog.SetEnabled(enabled);
+            AppLog.Initialize();
+            ApplyDiagnosticsState();
+            LoggingStatus.Text = enabled
+                ? "Diagnostic logging enabled."
+                : "Diagnostic logging disabled.";
+        }
+
+        private void ApplyDiagnosticsState()
+        {
+            var enabled = LoggingEnabled.IsOn;
+            SaveLogButton.IsEnabled = enabled;
+            TestReleaseNotificationButton.IsEnabled = enabled;
+            ShowMemoryUsage.IsEnabled = enabled;
+            if (!enabled)
+            {
+                ShowMemoryUsage.IsOn = false;
+                AppServices.Settings.ShowMemoryUsage = false;
+            }
+            else
+            {
+                ShowMemoryUsage.IsOn =
+                    AppServices.Settings.ShowMemoryUsage;
+            }
+        }
+
+        private async void SaveLog_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (!LoggingEnabled.IsOn)
+                return;
+
+            var picker = new FileSavePicker
+            {
+                SuggestedFileName =
+                    "Xamlio-log-" + DateTime.Now.ToString("yyyy-MM-dd_HH-mm"),
+                SuggestedStartLocation = PickerLocationId.DocumentsLibrary
+            };
+            picker.FileTypeChoices.Add(
+                "Text file",
+                new List<string> { ".txt" });
+
+            var file = await picker.PickSaveFileAsync();
+            if (file == null)
+                return;
+
+            var saved = await AppLog.SaveCopyAsync(file);
+            LoggingStatus.Text = saved
+                ? "Log saved to " + file.Name + "."
+                : "Couldn't save the log.";
+        }
+
         private void SubtitleLang_SelectionChanged(
             object sender,
             SelectionChangedEventArgs e)
@@ -316,6 +400,26 @@ namespace Xamlio.Views
                 App.RootFrame?.Content as ShellPage;
 
             shell?.ApplyDisplayMargins();
+        }
+
+        private void ReleaseReminders_Toggled(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (_initializing)
+                return;
+
+            AppServices.Settings.ReleaseRemindersEnabled =
+                ReleaseReminders.IsOn;
+            ReleaseReminderService.RefreshScheduledNotifications();
+        }
+
+        private void TestReleaseNotification_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            ReleaseReminderStatus.Text =
+                ReleaseReminderService.SendTestNotification();
         }
 
         private async void AddAddon_Click(

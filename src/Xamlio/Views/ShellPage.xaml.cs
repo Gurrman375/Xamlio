@@ -12,6 +12,10 @@ namespace Xamlio.Views
 {
     public sealed partial class ShellPage : Page
     {
+        private NavigationViewItem _lastContentItem;
+        private string _pendingToastType;
+        private string _pendingToastId;
+
         public ShellPage()
         {
             InitializeComponent();
@@ -50,7 +54,20 @@ namespace Xamlio.Views
                 Nav.SelectedItem = Nav.MenuItems[0];
             }
 
+            _lastContentItem = Nav.SelectedItem as NavigationViewItem;
+
             FocusContentAfterNavigation();
+
+            if (!string.IsNullOrWhiteSpace(_pendingToastId))
+            {
+                var type = _pendingToastType;
+                var id = _pendingToastId;
+                _pendingToastType = null;
+                _pendingToastId = null;
+                Dispatcher.RunAsync(
+                    CoreDispatcherPriority.Normal,
+                    () => NavigateToMetaNow(type, id));
+            }
         }
 
         private void CoreWindow_KeyDown(
@@ -63,6 +80,12 @@ namespace Xamlio.Views
 
         private bool HandleControllerKey(VirtualKey key)
         {
+            // Menu/Start is handled exclusively by the Windows.Gaming.Input polling
+            // in the active page. Prevent NavigationView from interpreting it
+            // as its own menu/overflow command and opening a blank popup.
+            if (key == VirtualKey.GamepadMenu)
+                return true;
+
             if (key == VirtualKey.GamepadLeftShoulder)
             {
                 SelectAdjacentTab(-1);
@@ -78,10 +101,36 @@ namespace Xamlio.Views
             return false;
         }
 
+        public void SetEpisodeActionsVisible(bool visible)
+        {
+            var visibility = visible
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            MarkWatchedAction.Visibility = visibility;
+            MarkBelowAction.Visibility = visibility;
+            BackgroundAction.Visibility = visibility;
+            PositionEpisodeActions();
+        }
+
+        private void Nav_SizeChanged(
+            object sender,
+            SizeChangedEventArgs e)
+        {
+            PositionEpisodeActions();
+        }
+
+        private void PositionEpisodeActions()
+        {
+            // FooterMenuItems are laid out at the trailing edge in top mode,
+            // avoiding the overflow flyout used by the main menu.
+        }
+
         private void SelectAdjacentTab(int direction)
         {
             var items = Nav.MenuItems
                 .OfType<NavigationViewItem>()
+                .Where(item => item.Visibility == Visibility.Visible &&
+                    item.IsEnabled)
                 .ToList();
 
             if (items.Count == 0)
@@ -110,6 +159,35 @@ namespace Xamlio.Views
 
             ContentFrame.GoBack();
             return true;
+        }
+
+        public void NavigateToMeta(string type, string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return;
+
+            if (!IsLoaded)
+            {
+                _pendingToastType = type;
+                _pendingToastId = id;
+                AppLog.WriteLine("[Toast] Deferring title navigation until shell loaded.");
+                return;
+            }
+
+            NavigateToMetaNow(type, id);
+        }
+
+        private void NavigateToMetaNow(string type, string id)
+        {
+            AppLog.WriteLine(
+                "[Toast] Navigating to title: type=" + type + ", id=" + id + ".");
+
+            ContentFrame.Navigate(typeof(DetailPage), new MetaArgs
+            {
+                Type = string.IsNullOrWhiteSpace(type) ? "series" : type,
+                Id = id
+            });
+            ContentFrame.BackStack.Clear();
         }
 
         public void RestorePlaybackPath(PlayerArgs args)
@@ -153,26 +231,33 @@ namespace Xamlio.Views
             ContentFrame.Navigate(typeof(StreamsPage), args);
         }
 
-        public void NavigateFromPlayerToEpisodeList(PlayerArgs args)
-        {
-            if (args == null || string.IsNullOrWhiteSpace(args.MetaId))
-                return;
-
-            ContentFrame.Navigate(
-                typeof(DetailPage),
-                new MetaArgs
-                {
-                    Type = args.Type,
-                    Id = args.MetaId
-                });
-        }
-
         private void Nav_SelectionChanged(
             NavigationView sender,
             NavigationViewSelectionChangedEventArgs args)
         {
             var tag =
                 (args.SelectedItem as NavigationViewItem)?.Tag as string;
+
+            if (tag == "action-mark-watched" ||
+                tag == "action-mark-below" ||
+                tag == "action-background")
+            {
+                var detail = ContentFrame.Content as DetailPage;
+                if (detail != null)
+                {
+                    if (tag == "action-mark-watched")
+                        detail.MarkFocusedEpisodeWatched();
+                    else if (tag == "action-mark-below")
+                        detail.MarkFocusedEpisodesBelow();
+                    else
+                        detail.CycleBackground();
+                }
+
+                RestoreContentSelection();
+                return;
+            }
+
+            _lastContentItem = args.SelectedItem as NavigationViewItem;
 
             Type page;
 
@@ -183,6 +268,9 @@ namespace Xamlio.Views
                     break;
                 case "library":
                     page = typeof(LibraryPage);
+                    break;
+                case "calendar":
+                    page = typeof(CalendarPage);
                     break;
                 case "settings":
                     page = typeof(SettingsPage);
@@ -199,6 +287,16 @@ namespace Xamlio.Views
             }
 
             FocusContentAfterNavigation();
+        }
+
+        private void RestoreContentSelection()
+        {
+            var item = _lastContentItem ?? Nav.MenuItems
+                .OfType<NavigationViewItem>()
+                .FirstOrDefault(candidate =>
+                    candidate.Tag as string == "library");
+            if (item != null)
+                Nav.SelectedItem = item;
         }
 
         private async void FocusContentAfterNavigation()

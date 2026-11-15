@@ -18,6 +18,10 @@
                 </Border>
                 <Button x:Name="PlayButton" Content="Watch" HorizontalAlignment="Stretch" Margin="0,16,0,0"
                         Style="{StaticResource AccentButtonStyle}" Visibility="Collapsed" Click="PlayButton_Click" />
+                <Button x:Name="ReminderButton" Content="Remind me" HorizontalAlignment="Stretch" Margin="0,8,0,0"
+                        Visibility="Collapsed" Click="ReminderButton_Click" />
+                <TextBlock x:Name="ReminderStatus" Foreground="{StaticResource MutedTextBrush}"
+                           TextWrapping="Wrap" Margin="0,8,0,0" />
             </StackPanel>
 
             <Grid Grid.Column="1">
@@ -52,7 +56,6 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="150" />
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
                                     <Border Width="140" Height="78" Background="#2A2840">
@@ -74,25 +77,6 @@
                                                    Foreground="{StaticResource MutedTextBrush}" />
                                     </StackPanel>
 
-                                    <Button Grid.Column="2"
-                                            Tag="{Binding}"
-                                            IsEnabled="{Binding CanMarkWatched}"
-                                            Click="MarkWatched_Click"
-                                            MinWidth="150"
-                                            VerticalAlignment="Center"
-                                            AutomationProperties.Name="Mark watched">
-                                        <StackPanel Orientation="Horizontal"
-                                                    Spacing="6">
-                                            <Image
-                                                Source="ms-appx:///Assets/XButton.png"
-                                                Width="22"
-                                                Height="22"
-                                                Stretch="Uniform" />
-                                            <TextBlock
-                                                Text="{Binding MarkWatchedText}"
-                                                VerticalAlignment="Center" />
-                                        </StackPanel>
-                                    </Button>
                                 </Grid>
                             </DataTemplate>
                         </ListView.ItemTemplate>

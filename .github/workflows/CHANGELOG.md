@@ -55,3 +55,17 @@
 - GitHub releases now use unique version tags and preserve previous builds.
 - Added Microsoft Store download link and badge to every release.
 - Moved release notes into `.github/workflows/CHANGELOG.md` so future releases can update the changelog independently of the workflow.
+### Xamlio 1.0.28.0 — Release reminders and calendar
+
+- Added release reminders for shows and movies.
+- Added scheduled Windows toast notifications.
+- Added toast activation deep links to show/movie detail pages.
+- Added Calendar navigation with Month, Week, and Day views.
+- Sorted reminders by release date and time.
+- Added poster artwork to calendar entries with fallback placeholders.
+- Added a diagnostic logging toggle.
+- Disabled the player memory viewer and test notifications when logging is disabled.
+- Added “Save log as…” export through the Xbox file picker.
+- Improved Xbox toast activation while the app is open or closed.
+- Preserved MPV player work separately; it is not included in this Xamlio build.
+

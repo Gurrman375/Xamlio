@@ -139,6 +139,11 @@
                     Header="Blur unwatched episode images"
                     Toggled="BlurUnwatchedEpisodeImages_Toggled" />
 
+                <ToggleSwitch
+                    x:Name="ShowMemoryUsage"
+                    Header="Show memory usage in the player by default"
+                    Toggled="ShowMemoryUsage_Toggled" />
+
                 <ComboBox
                     x:Name="SubtitleLang"
                     Header="Preferred subtitle language"
@@ -175,6 +180,60 @@
                     x:Name="TvSafeMarginsToggle"
                     Header="Use TV-safe margins"
                     Toggled="TvSafeMarginsToggle_Toggled" />
+
+                <TextBlock
+                    Text="Diagnostics"
+                    Style="{StaticResource SectionHeaderStyle}" />
+
+                <ToggleSwitch
+                    x:Name="LoggingEnabled"
+                    Header="Enable diagnostic logging"
+                    Toggled="LoggingEnabled_Toggled" />
+
+                <TextBlock
+                    Foreground="{StaticResource MutedTextBrush}"
+                    TextWrapping="Wrap"
+                    Text="Logging is used for troubleshooting. Turning it off also disables the player memory viewer and test notifications." />
+
+                <StackPanel
+                    Orientation="Horizontal"
+                    Spacing="12">
+                    <Button
+                        x:Name="SaveLogButton"
+                        Content="Save log as..."
+                        Click="SaveLog_Click" />
+
+                    <TextBlock
+                        x:Name="LoggingStatus"
+                        VerticalAlignment="Center"
+                        Foreground="{StaticResource MutedTextBrush}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <TextBlock
+                    Text="Calendar &amp; notifications"
+                    Style="{StaticResource SectionHeaderStyle}" />
+
+                <ToggleSwitch
+                    x:Name="ReleaseReminders"
+                    Header="Notify me about selected releases"
+                    Toggled="ReleaseReminders_Toggled" />
+
+                <TextBlock
+                    Foreground="{StaticResource MutedTextBrush}"
+                    TextWrapping="Wrap"
+                    Text="Use Remind me on a movie or show. Notifications use the release time when supplied; date-only releases are scheduled for 9:00 AM local time." />
+
+                <Button
+                    x:Name="TestReleaseNotificationButton"
+                    Content="Send test notification"
+                    HorizontalAlignment="Left"
+                    Click="TestReleaseNotification_Click" />
+
+                <TextBlock
+                    x:Name="ReleaseReminderStatus"
+                    Foreground="{StaticResource MutedTextBrush}"
+                    TextWrapping="Wrap" />
 
                 <TextBlock
                     Text="Addons"

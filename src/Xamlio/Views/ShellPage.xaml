@@ -13,12 +13,72 @@
         IsSettingsVisible="False"
         IsTabStop="False"
         XYFocusKeyboardNavigation="Disabled"
+        SizeChanged="Nav_SizeChanged"
         SelectionChanged="Nav_SelectionChanged">
         <NavigationView.MenuItems>
             <NavigationViewItem Content="Board" Tag="board" Icon="Home" IsTabStop="False" />
             <NavigationViewItem Content="Search" Tag="search" Icon="Find" IsTabStop="False" />
             <NavigationViewItem Content="Library" Tag="library" Icon="Library" IsTabStop="False" />
+            <NavigationViewItem Content="Calendar" Tag="calendar" Icon="Calendar" IsTabStop="False" />
             <NavigationViewItem Content="Settings" Tag="settings" Icon="Setting" IsTabStop="False" />
+
+            <NavigationViewItem
+                x:Name="MarkWatchedAction"
+                Tag="action-mark-watched"
+                Visibility="Collapsed"
+                IsTabStop="False"
+                Width="150"
+                HorizontalContentAlignment="Left"
+                ToolTipService.ToolTip="X: Mark focused episode watched or unwatched">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Image Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center">
+                        <Image.Source>
+                            <SvgImageSource UriSource="ms-appx:///Assets/Xbox_button_X.svg"
+                                RasterizePixelHeight="20"
+                                RasterizePixelWidth="20" />
+                        </Image.Source>
+                    </Image>
+                    <TextBlock Text="Mark watched" VerticalAlignment="Center" />
+                </StackPanel>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="MarkBelowAction"
+                Tag="action-mark-below"
+                Visibility="Collapsed"
+                IsTabStop="False"
+                Width="150"
+                HorizontalContentAlignment="Left"
+                ToolTipService.ToolTip="Y: Mark focused and later episodes watched or unwatched">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Image Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center">
+                        <Image.Source>
+                            <SvgImageSource UriSource="ms-appx:///Assets/Xbox_button_Y.svg"
+                                RasterizePixelHeight="20"
+                                RasterizePixelWidth="20" />
+                        </Image.Source>
+                    </Image>
+                    <TextBlock Text="Watched below" VerticalAlignment="Center" />
+                </StackPanel>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="BackgroundAction"
+                Tag="action-background"
+                Visibility="Collapsed"
+                IsTabStop="False"
+                Width="135"
+                HorizontalContentAlignment="Left"
+                ToolTipService.ToolTip="Menu: Change background image">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Image Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center">
+                        <Image.Source>
+                            <SvgImageSource UriSource="ms-appx:///Assets/Xbox_Menu_button.svg"
+                                RasterizePixelHeight="70"
+                                RasterizePixelWidth="70" />
+                        </Image.Source>
+                    </Image>
+                    <TextBlock Text="Background" VerticalAlignment="Center" />
+                </StackPanel>
+            </NavigationViewItem>
         </NavigationView.MenuItems>
 
         <Frame x:Name="ContentFrame" IsTabStop="False" />

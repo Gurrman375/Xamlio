@@ -39,11 +39,14 @@ namespace Xamlio.Views
         private bool _streamsReceived;
         private readonly DispatcherTimer _gamepadTimer;
         private bool _xButtonHeld;
+        private bool _yButtonHeld;
         private LibraryItem _libraryItem;
         private List<Video> _episodeVideos = new List<Video>();
         private HashSet<string> _watchedVideoIds =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private string _episodePreviewThumbnail;
+        private List<string> _backgrounds = new List<string>();
+        private int _backgroundIndex;
 
         public StreamsPage()
         {
@@ -72,6 +75,8 @@ namespace Xamlio.Views
             base.OnNavigatedTo(e);
 
             _xButtonHeld = false;
+            _yButtonHeld = false;
+            _backgroundIndex = 0;
             _gamepadTimer.Start();
 
             _args = (StreamsArgs)e.Parameter;
@@ -100,8 +105,12 @@ namespace Xamlio.Views
                 EpisodeWatchStatus.Visibility = Visibility.Visible;
             }
 
-            SetImage(Backdrop, await AppServices.GetTmdbBackgroundAsync(
-                _args.MetaId, _args.Background));
+            _backgrounds = await AppServices.GetTmdbBackgroundsAsync(
+                _args.MetaId, _args.Background);
+            _backgroundIndex = GetSavedBackgroundIndex(_args.MetaId);
+            SetImage(Backdrop, _backgrounds.Count > 0
+                ? _backgrounds[_backgroundIndex]
+                : null);
 
             _loadCts?.Cancel();
             _loadCts = new CancellationTokenSource();
@@ -249,7 +258,7 @@ namespace Xamlio.Views
 
             text = text.ToUpperInvariant();
 
-            ShellPage.ShowPlayer(new PlayerArgs
+            var playerArgs = new PlayerArgs
             {
                 Url = resolved.Url,
                 VideoId = _args.VideoId,
@@ -257,7 +266,7 @@ namespace Xamlio.Views
                 MetaId = _args.MetaId,
                 Headers = resolved.Headers,
                 Title = _args.Title,
-                Background = _args.Background,
+                Background = GetCurrentBackground(),
                 AddonName = stream.AddonName,
                 AddonUrl = stream.AddonUrl,
                 StreamTitle = stream.Label,
@@ -266,7 +275,18 @@ namespace Xamlio.Views
                     text.Contains("HDR") ||
                     text.Contains("DOLBY VISION") ||
                     text.Contains(" DV")
-            });
+            };
+
+            ShellPage.ShowPlayer(playerArgs);
+        }
+
+        private string GetCurrentBackground()
+        {
+            return _backgrounds.Count > 0 &&
+                   _backgroundIndex >= 0 &&
+                   _backgroundIndex < _backgrounds.Count
+                ? _backgrounds[_backgroundIndex]
+                : _args.Background;
         }
 
         private async Task FlashServerWarningAsync()
@@ -325,11 +345,32 @@ namespace Xamlio.Views
 
             var buttons = gamepad.GetCurrentReading().Buttons;
             var xPressed = (buttons & GamepadButtons.X) != 0;
+            var yPressed = (buttons & GamepadButtons.Y) != 0;
+
+            if (yPressed && !_yButtonHeld && _backgrounds.Count > 1)
+            {
+                _backgroundIndex = (_backgroundIndex + 1) % _backgrounds.Count;
+                SetImage(Backdrop, _backgrounds[_backgroundIndex]);
+                AppServices.Settings.SetSelectedBackground(
+                    _args?.MetaId, _backgrounds[_backgroundIndex]);
+            }
 
             if (xPressed && !_xButtonHeld)
                 _ = ToggleCurrentWatchStateAsync();
 
             _xButtonHeld = xPressed;
+            _yButtonHeld = yPressed;
+        }
+
+        private int GetSavedBackgroundIndex(string mediaId)
+        {
+            if (_backgrounds.Count == 0)
+                return 0;
+
+            var saved = AppServices.Settings.GetSelectedBackground(mediaId);
+            var index = _backgrounds.FindIndex(image =>
+                string.Equals(image, saved, StringComparison.OrdinalIgnoreCase));
+            return index >= 0 ? index : 0;
         }
 
         private async Task LoadEpisodeWatchStateAsync()

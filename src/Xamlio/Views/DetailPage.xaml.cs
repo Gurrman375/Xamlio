@@ -75,10 +75,15 @@ namespace Xamlio.Views
         private Dictionary<int, List<Video>> _seasons = new Dictionary<int, List<Video>>();
         private LibraryItem _libraryItem;
         private string _detailBackground;
+        private List<string> _backgrounds = new List<string>();
+        private int _backgroundIndex;
         private readonly HashSet<string> _watchedVideoIds =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly DispatcherTimer _gamepadTimer;
         private bool _xButtonHeld;
+        private bool _yButtonHeld;
+        private bool _menuButtonHeld;
+        private bool _bulkWatchUpdateInProgress;
 
         public DetailPage()
         {
@@ -93,6 +98,8 @@ namespace Xamlio.Views
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             _xButtonHeld = false;
+            _yButtonHeld = false;
+            _menuButtonHeld = false;
             _gamepadTimer.Start();
             _args = (MetaArgs)e.Parameter;
             try
@@ -110,6 +117,8 @@ namespace Xamlio.Views
 
             if (_meta == null)
             {
+                (App.RootFrame?.Content as ShellPage)?.SetEpisodeActionsVisible(false);
+                ReminderButton.Visibility = Visibility.Collapsed;
                 Title.Text = "Couldn't load details";
                 return;
             }
@@ -120,8 +129,15 @@ namespace Xamlio.Views
                 .Where(s => !string.IsNullOrEmpty(s)));
             Description.Text = _meta.Description ?? "";
             SetImage(Poster, _meta.Poster);
-            _detailBackground = await AppServices.GetTmdbBackgroundAsync(
+            ReminderButton.Visibility = Visibility.Visible;
+            ReminderStatus.Text = "";
+            UpdateReminderButton();
+            _backgrounds = await AppServices.GetTmdbBackgroundsAsync(
                 _meta.Id, _meta.Background);
+            _backgroundIndex = GetSavedBackgroundIndex(_meta.Id);
+            _detailBackground = _backgrounds.Count > 0
+                ? _backgrounds[_backgroundIndex]
+                : null;
             SetImage(Backdrop, _detailBackground);
 
             await LoadWatchStateAsync();
@@ -129,6 +145,7 @@ namespace Xamlio.Views
             var videos = _meta.Videos ?? new List<Video>();
             if (_args.Type == "movie" || videos.Count == 0)
             {
+                (App.RootFrame?.Content as ShellPage)?.SetEpisodeActionsVisible(false);
                 PlayButton.Visibility = Visibility.Visible;
                 PlayButton.Focus(FocusState.Programmatic);
                 return;
@@ -142,6 +159,7 @@ namespace Xamlio.Views
             SeasonPicker.ItemsSource = seasonKeys
                 .Select(s => s == 0 ? "Specials" : "Season " + s).ToList();
             EpisodesPanel.Visibility = Visibility.Visible;
+            (App.RootFrame?.Content as ShellPage)?.SetEpisodeActionsVisible(true);
             SeasonPicker.SelectedIndex = FindInitialSeasonIndex(seasonKeys);
             SeasonPicker.Focus(FocusState.Programmatic);
         }
@@ -165,6 +183,7 @@ namespace Xamlio.Views
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
             _gamepadTimer.Stop();
+            (App.RootFrame?.Content as ShellPage)?.SetEpisodeActionsVisible(false);
             base.OnNavigatedFrom(e);
         }
 
@@ -271,6 +290,45 @@ namespace Xamlio.Views
             await MarkEpisodeWatchedAsync(row);
         }
 
+        private async void MarkBelowWatched_Click(object sender, RoutedEventArgs e)
+        {
+            var row = (sender as Button)?.Tag as EpisodeRow;
+            await MarkEpisodesBelowAsync(row);
+        }
+
+        public void MarkFocusedEpisodeWatched()
+        {
+            var row = GetFocusedEpisodeRow();
+            if (row != null)
+                _ = MarkEpisodeWatchedAsync(row);
+        }
+
+        public void MarkFocusedEpisodesBelow()
+        {
+            var row = GetFocusedEpisodeRow();
+            if (row != null)
+                _ = MarkEpisodesBelowAsync(row);
+        }
+
+        public void CycleBackground()
+        {
+            if (_backgrounds.Count <= 1)
+                return;
+
+            _backgroundIndex = (_backgroundIndex + 1) % _backgrounds.Count;
+            SetImage(Backdrop, _backgrounds[_backgroundIndex]);
+            AppServices.Settings.SetSelectedBackground(
+                _args?.Id, _backgrounds[_backgroundIndex]);
+        }
+
+        private EpisodeRow GetFocusedEpisodeRow()
+        {
+            var focused = FocusManager.GetFocusedElement() as DependencyObject;
+            var item = FindParent<ListViewItem>(focused);
+            return item?.DataContext as EpisodeRow ??
+                item?.Content as EpisodeRow;
+        }
+
         private async Task MarkEpisodeWatchedAsync(EpisodeRow row)
         {
             if (row?.Video == null)
@@ -312,6 +370,104 @@ namespace Xamlio.Views
             }
         }
 
+        private void ReminderButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_meta == null || string.IsNullOrWhiteSpace(_meta.Id))
+                return;
+
+            if (ReleaseReminderService.IsReminderSet(_meta.Id))
+            {
+                ReleaseReminderService.RemoveReminder(_meta.Id);
+                ReminderStatus.Text = "Release reminder removed.";
+            }
+            else
+            {
+                var result = ReleaseReminderService.SetReminder(
+                    _meta, _args?.Type);
+                ReminderStatus.Text = result.Message;
+            }
+
+            UpdateReminderButton();
+        }
+
+        private void UpdateReminderButton()
+        {
+            var reminderSet = _meta != null &&
+                ReleaseReminderService.IsReminderSet(_meta.Id);
+            ReminderButton.Content = reminderSet
+                ? "Remove reminder"
+                : "Remind me";
+        }
+
+        private async Task MarkEpisodesBelowAsync(EpisodeRow row)
+        {
+            if (_bulkWatchUpdateInProgress || row?.Video == null)
+                return;
+
+            if (_libraryItem == null)
+                await LoadWatchStateAsync();
+
+            if (_libraryItem == null || _meta == null)
+                return;
+
+            var label = SeasonPicker.SelectedItem as string;
+            if (label == null)
+                return;
+
+            var season = label == "Specials"
+                ? 0
+                : int.Parse(label.Substring("Season ".Length));
+            var seasonVideos = _seasons[season];
+            var selectedIndex = seasonVideos.FindIndex(video =>
+                string.Equals(video.Id, row.Video.Id,
+                    StringComparison.OrdinalIgnoreCase));
+            if (selectedIndex < 0)
+                return;
+
+            var shouldBeWatched = !row.IsWatched;
+            var orderedVideos = WatchStateHelper.OrderEpisodes(_meta.Videos);
+            var watchedValue = _libraryItem.State?.Watched;
+
+            _bulkWatchUpdateInProgress = true;
+            try
+            {
+                foreach (var video in seasonVideos.Skip(selectedIndex))
+                {
+                    watchedValue = WatchStateHelper.SetVideo(
+                        watchedValue,
+                        orderedVideos,
+                        video,
+                        shouldBeWatched);
+
+                    if (shouldBeWatched)
+                        _watchedVideoIds.Add(video.Id);
+                    else
+                        _watchedVideoIds.Remove(video.Id);
+                }
+
+                await AppServices.Api.UpdateLibraryWatchedAsync(
+                    AppServices.Settings.AuthKey,
+                    _libraryItem.Id,
+                    watchedValue,
+                    shouldBeWatched);
+
+                if (_libraryItem.State == null)
+                    _libraryItem.State = new LibraryItemState();
+                _libraryItem.State.Watched = watchedValue;
+                RefreshCurrentSeason();
+            }
+            catch (Exception ex)
+            {
+                AppLog.WriteLine("Mark episodes below failed: " + ex.Message);
+                await LoadWatchStateAsync();
+                RefreshCurrentSeason();
+            }
+            finally
+            {
+                _bulkWatchUpdateInProgress = false;
+            }
+        }
+
         private void GamepadTimer_Tick(object sender, object e)
         {
             var gamepad = Gamepad.Gamepads.FirstOrDefault();
@@ -320,6 +476,8 @@ namespace Xamlio.Views
 
             var buttons = gamepad.GetCurrentReading().Buttons;
             var xPressed = (buttons & GamepadButtons.X) != 0;
+            var yPressed = (buttons & GamepadButtons.Y) != 0;
+            var menuPressed = (buttons & GamepadButtons.Menu) != 0;
 
             if (xPressed && !_xButtonHeld)
             {
@@ -331,7 +489,38 @@ namespace Xamlio.Views
                     _ = MarkEpisodeWatchedAsync(row);
             }
 
+            if (yPressed && !_yButtonHeld)
+            {
+                var focused = FocusManager.GetFocusedElement() as DependencyObject;
+                var item = FindParent<ListViewItem>(focused);
+                var row = item?.DataContext as EpisodeRow ??
+                          item?.Content as EpisodeRow;
+                if (row != null)
+                    _ = MarkEpisodesBelowAsync(row);
+            }
+
+            if (menuPressed && !_menuButtonHeld && _backgrounds.Count > 1)
+            {
+                _backgroundIndex = (_backgroundIndex + 1) % _backgrounds.Count;
+                SetImage(Backdrop, _backgrounds[_backgroundIndex]);
+                AppServices.Settings.SetSelectedBackground(
+                    _args?.Id, _backgrounds[_backgroundIndex]);
+            }
+
             _xButtonHeld = xPressed;
+            _yButtonHeld = yPressed;
+            _menuButtonHeld = menuPressed;
+        }
+
+        private int GetSavedBackgroundIndex(string mediaId)
+        {
+            if (_backgrounds.Count == 0)
+                return 0;
+
+            var saved = AppServices.Settings.GetSelectedBackground(mediaId);
+            var index = _backgrounds.FindIndex(image =>
+                string.Equals(image, saved, StringComparison.OrdinalIgnoreCase));
+            return index >= 0 ? index : 0;
         }
 
         private async Task LoadWatchStateAsync()

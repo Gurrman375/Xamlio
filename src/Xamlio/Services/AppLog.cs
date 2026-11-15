@@ -14,14 +14,24 @@ namespace Xamlio.Services
         private static StorageFile _file;
         private static Task _fileTask;
 
+        public static bool IsEnabled { get; private set; } = true;
+
+        public static void SetEnabled(bool enabled)
+        {
+            IsEnabled = enabled;
+            if (enabled)
+                EnsureFileAsync();
+        }
+
         public static void Initialize()
         {
-            EnsureFileAsync();
+            if (IsEnabled)
+                EnsureFileAsync();
         }
 
         public static void WriteLine(string message)
         {
-            if (string.IsNullOrWhiteSpace(message))
+            if (!IsEnabled || string.IsNullOrWhiteSpace(message))
                 return;
 
             var line = DateTime.UtcNow.ToString("O") + " " + message;
@@ -29,6 +39,35 @@ namespace Xamlio.Services
                 line = line.Substring(0, 8000) + " ...[truncated]";
 
             _ = AppendAsync(line);
+        }
+
+        public static async Task<bool> SaveCopyAsync(StorageFile destination)
+        {
+            if (!IsEnabled || destination == null)
+                return false;
+
+            try
+            {
+                await EnsureFileAsync();
+                await WriteGate.WaitAsync();
+                try
+                {
+                    if (_file == null)
+                        return false;
+
+                    var contents = await FileIO.ReadTextAsync(_file);
+                    await FileIO.WriteTextAsync(destination, contents);
+                    return true;
+                }
+                finally
+                {
+                    WriteGate.Release();
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static Task EnsureFileAsync()

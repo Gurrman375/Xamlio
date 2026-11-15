@@ -58,6 +58,74 @@ namespace Stremio.Core.Settings
             set { _store.Set("blurUnwatchedEpisodeImages", value ? "true" : "false"); }
         }
 
+        public bool ShowMemoryUsage
+        {
+            get { return _store.Get("showMemoryUsage") == "true"; }
+            set { _store.Set("showMemoryUsage", value ? "true" : "false"); }
+        }
+
+        public bool LoggingEnabled
+        {
+            get { return _store.Get("loggingEnabled") != "false"; }
+            set { _store.Set("loggingEnabled", value ? "true" : "false"); }
+        }
+
+        public bool ReleaseRemindersEnabled
+        {
+            get { return _store.Get("releaseRemindersEnabled") != "false"; }
+            set { _store.Set("releaseRemindersEnabled", value ? "true" : "false"); }
+        }
+
+        public string ReleaseRemindersJson
+        {
+            get { return _store.Get("releaseReminders"); }
+            set { _store.Set("releaseReminders", value); }
+        }
+
+        public string GetSelectedBackground(string mediaId)
+        {
+            if (string.IsNullOrWhiteSpace(mediaId))
+                return null;
+
+            var json = _store.Get("selectedBackgrounds");
+            if (string.IsNullOrWhiteSpace(json))
+                return null;
+
+            try
+            {
+                var values = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+                return values != null && values.ContainsKey(mediaId)
+                    ? values[mediaId]
+                    : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public void SetSelectedBackground(string mediaId, string imageUrl)
+        {
+            if (string.IsNullOrWhiteSpace(mediaId) ||
+                string.IsNullOrWhiteSpace(imageUrl))
+                return;
+
+            Dictionary<string, string> values;
+            try
+            {
+                values = JsonConvert.DeserializeObject<Dictionary<string, string>>(
+                    _store.Get("selectedBackgrounds")) ??
+                    new Dictionary<string, string>();
+            }
+            catch
+            {
+                values = new Dictionary<string, string>();
+            }
+
+            values[mediaId] = imageUrl;
+            _store.Set("selectedBackgrounds", JsonConvert.SerializeObject(values));
+        }
+
         public string PreferredSubtitleLanguage
         {
             get { return _store.Get("subtitleLang") ?? "eng"; }

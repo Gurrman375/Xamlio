@@ -118,14 +118,14 @@
                     AutomationProperties.Name="Toggle watched state">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <Image
-                            Source="ms-appx:///Assets/XButton.png"
+                            Source="ms-appx:///Assets/Xbox_button_X.svg"
                             Width="22"
                             Height="22"
                             Stretch="Uniform" />
                         <TextBlock
                             x:Name="MarkWatchedButtonText"
                             VerticalAlignment="Center"
-                            Text="Mark as watched" />
+                            Text="Mark as watched"/>
                     </StackPanel>
                 </Button>
             </StackPanel>

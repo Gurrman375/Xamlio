@@ -17,6 +17,7 @@ using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
+using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 using Windows.Gaming.Input;
 
@@ -34,6 +35,8 @@ namespace Xamlio.Views
         private bool _suppressGamepadA;
 
         private readonly DispatcherTimer _overlayTimer = new DispatcherTimer { Interval = OverlayTimeout };
+        private readonly DispatcherTimer _transientMessageTimer =
+            new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         private readonly DisplayRequest _displayRequest = new DisplayRequest();
         private PlayerArgs _args;
         private LibVLC _libVlc;
@@ -69,6 +72,16 @@ namespace Xamlio.Views
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private bool _defaultTracksApplied;
         private bool _additionalSubtitlesLoading;
+        private bool _subpictureHeapFullHandled;
+        private bool _isDisposing;
+        private bool _transientMessageVisible;
+        private bool _playbackStarted;
+
+        private bool HasPlayback => _player != null;
+        private bool PlaybackIsPlaying => _player != null && _player.IsPlaying;
+        private long PlaybackTime => _player?.Time ?? 0;
+        private long PlaybackLength => _player?.Length ?? 0;
+        private bool PlaybackIsSeekable => _player != null && _player.IsSeekable;
 
         private const long PlaybackSaveIntervalMs = 5000;
         private const long ServerSyncIntervalMs = 60000;
@@ -86,6 +99,13 @@ namespace Xamlio.Views
         {
             InitializeComponent();
             _overlayTimer.Tick += (s, e) => HideOverlay();
+            _transientMessageTimer.Tick += (s, e) =>
+            {
+                _transientMessageTimer.Stop();
+                _transientMessageVisible = false;
+                if (!_isDisposing)
+                    ErrorText.Visibility = Visibility.Collapsed;
+            };
             _gamepadTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(50)
@@ -105,17 +125,31 @@ namespace Xamlio.Views
         {
             _lifecycleCancellation?.Dispose();
             _lifecycleCancellation = new CancellationTokenSource();
+            _isDisposing = false;
             _args = (PlayerArgs)e.Parameter;
             LogAppMemory("navigated-to");
             _resumeTimeMs = LoadSavedPlaybackTime(_args?.VideoId);
             _resumeApplied = false;
             _completionHandled = false;
+            _playbackStarted = false;
+            _subpictureHeapFullHandled = false;
             _nextEpisode = null;
             _episodeVideos.Clear();
             _nextPreparationTask = null;
             NextEpisodeButton.Visibility = Visibility.Collapsed;
+            var diagnosticsEnabled = AppLog.IsEnabled &&
+                AppServices.Settings.LoggingEnabled;
+            MemoryButton.Visibility = diagnosticsEnabled
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            MemoryPanel.Visibility = diagnosticsEnabled &&
+                AppServices.Settings.ShowMemoryUsage
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            UpdateMemoryText();
             _nextDiscoveryTask = LoadNextEpisodeAsync(_lifecycleCancellation.Token);
             TitleText.Text = _args.Title ?? "";
+            ShowArtwork(_args.Background);
             _displayRequest.RequestActive();
             ShowOverlay();
             _gamepadTimer.Start();
@@ -125,6 +159,7 @@ namespace Xamlio.Views
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
+            _isDisposing = true;
             AppLog.WriteLine("[PlayerLifecycle] navigated-from, disposing playback resources");
             LogAppMemory("before-dispose");
             SavePlaybackPosition("navigated-from", true);
@@ -138,6 +173,8 @@ namespace Xamlio.Views
             _loadedSubtitleUrls.Clear();
             _additionalSubtitlesLoading = false;
             _overlayTimer.Stop();
+            _transientMessageTimer.Stop();
+            _transientMessageVisible = false;
             try { _displayRequest.RequestRelease(); } catch (Exception) { }
 
             var player = _player;
@@ -184,6 +221,8 @@ namespace Xamlio.Views
             _gamepadTimer.Stop();
             _clockTimer.Stop();
             _args = null;
+            Artwork.Visibility = Visibility.Collapsed;
+            Artwork.Source = null;
             LogAppMemory("after-dispose");
             DisplayModeService.RestoreDefault();
         }
@@ -199,10 +238,16 @@ namespace Xamlio.Views
         // VideoView creates its swap chain first; LibVLC must be created with those options.
         private void Video_Initialized(object sender, InitializedEventArgs e)
         {
+            if (_isDisposing || _args == null)
+            {
+                AppLog.WriteLine("[PlayerLifecycle] ignoring VideoView initialization during disposal");
+                return;
+            }
+
             AppLog.WriteLine("[PlayerLifecycle] VideoView initialized; creating LibVLC");
             var options = new List<string>(e.SwapChainOptions)
             {
-                "--avcodec-hw=none",
+                "--avcodec-hw=d3d11va",
                 "--network-caching=3000",
                 "--sub-track-id=-1",
                 "--verbose=2",
@@ -214,10 +259,19 @@ namespace Xamlio.Views
                 options.Add("--spdif"); // bitstream AC3/E-AC3/DTS to the TV or receiver
 
             _libVlc = new LibVLC(false, options.ToArray());
+
+            if (_isDisposing || _args == null)
+            {
+                AppLog.WriteLine("[PlayerLifecycle] disposing LibVLC created during navigation teardown");
+                _libVlc.Dispose();
+                _libVlc = null;
+                return;
+            }
+
             _libVlc.Log += (s, a) => LogLibVlc(a.Level, a.Module, a.Message);
-            _player = new MediaPlayer(_libVlc) { EnableHardwareDecoding = false };
+            _player = new MediaPlayer(_libVlc) { EnableHardwareDecoding = true };
             AppLog.WriteLine("[Diagnostics] LibVLC dummy audio output enabled for seek-crash isolation");
-            AppLog.WriteLine("[PlayerLifecycle] LibVLC and MediaPlayer created; hardware decoder disabled");
+            AppLog.WriteLine("[PlayerLifecycle] LibVLC and MediaPlayer created; D3D11VA hardware decoder enabled");
             LogAppMemory("libvlc-created");
             _player.Playing += (s, a) => OnUi(() =>
             {
@@ -273,7 +327,8 @@ namespace Xamlio.Views
             IDictionary<string, string> headers,
             IList<Subtitle> subtitles)
         {
-            if (_player == null || string.IsNullOrWhiteSpace(url))
+            if (_isDisposing || _player == null || _libVlc == null ||
+                string.IsNullOrWhiteSpace(url))
                 return;
 
             _lastLibVlcError = null;
@@ -303,34 +358,8 @@ namespace Xamlio.Views
                 .GroupBy(s => s.Url, StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.First())
                 .ToList();
-
-            if (AppServices.Settings.SubtitlesEnabled)
-            {
-                var preferred = AppServices.Settings.PreferredSubtitleLanguage;
-                var selected = validSubtitles.FirstOrDefault(s =>
-                    string.Equals(s.Lang, preferred, StringComparison.OrdinalIgnoreCase));
-
-                if (selected != null)
-                {
-                    AppLog.WriteLine("[PlaybackDiagnostics] subtitle-addslave, videoId=" +
-                        (_args?.VideoId ?? "") + ", language=" + (selected.Lang ?? "") +
-                        ", source=default-external");
-                    _player.AddSlave(MediaSlaveType.Subtitle, selected.Url, true);
-                    _loadedSubtitleUrls.Add(selected.Url);
-                    AppLog.WriteLine("[SubtitleDiagnostics] default subtitle attached, language=" +
-                        (selected.Lang ?? "") + ", candidates=" + validSubtitles.Count);
-                }
-                else
-                {
-                    AppLog.WriteLine("[SubtitleDiagnostics] preferred subtitle unavailable, language=" +
-                        preferred + ", candidates=" + validSubtitles.Count);
-                }
-            }
-            else
-            {
-                AppLog.WriteLine("[SubtitleDiagnostics] subtitles disabled by default, candidates=" +
-                    validSubtitles.Count);
-            }
+            AppLog.WriteLine("[SubtitleDiagnostics] external subtitles held for manual loading, candidates=" +
+                validSubtitles.Count);
         }
 
         private void ApplyDefaultTracks()
@@ -403,6 +432,17 @@ namespace Xamlio.Views
 
             if (selectedId >= 0)
             {
+                if (IsEnglishTrack(selectedName) && IsMemoryTooLowForSubtitles())
+                {
+                    _player.SetSpu(-1);
+                    ShowTransientMessage(
+                        "Xbox memory is low, so English subtitles were not loaded. " +
+                        "Use the subtitle menu to load them manually.");
+                    AppLog.WriteLine(
+                        "[SubtitleDiagnostics] skipped default English subtitle because memory is low");
+                    return;
+                }
+
                 _player.SetSpu(selectedId);
                 AppLog.WriteLine("[SubtitleDiagnostics] default embedded subtitle selected, id=" +
                     selectedId + ", signsAndSongs=" + preferSignsAndSongs +
@@ -422,6 +462,40 @@ namespace Xamlio.Views
                 normalized.Contains("signs & songs") ||
                 normalized.Contains("sdh") ||
                 normalized.Contains("hearing impaired");
+        }
+
+        private static bool IsEnglishTrack(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return false;
+
+            var normalized = name.ToLowerInvariant();
+            return normalized.Contains("english") ||
+                normalized.Contains("[eng]") ||
+                normalized.Contains(" eng ");
+        }
+
+        private bool IsMemoryTooLowForSubtitles()
+        {
+            try
+            {
+                var report = MemoryManager.GetAppMemoryReport();
+                const double megabyte = 1024.0 * 1024.0;
+                var totalUsageMb = report.TotalCommitUsage / megabyte;
+
+                // Keep a conservative reserve for Xbox's native video and
+                // subtitle allocations. This is intentionally below the
+                // device's practical working budget rather than the report's
+                // larger theoretical limit.
+                const double subtitleSafeLimitMb = 360.0;
+                return totalUsageMb >= subtitleSafeLimitMb;
+            }
+            catch (Exception ex)
+            {
+                AppLog.WriteLine(
+                    "[SubtitleDiagnostics] memory check failed: " + ex.Message);
+                return true;
+            }
         }
 
         private static bool TrackMatchesLanguage(string name, string language)
@@ -449,6 +523,12 @@ namespace Xamlio.Views
         {
             if (_completionHandled)
                 return;
+
+            if (!_playbackStarted)
+            {
+                AppLog.WriteLine("[PlayerLifecycle] playback ended before playback started; not marking watched");
+                return;
+            }
 
             _completionHandled = true;
             SavePlaybackPosition("ended", true);
@@ -662,8 +742,27 @@ namespace Xamlio.Views
                 _args.VideoId + ", mediaCreated=true, mediaPlayerReused=true, playCalled=true");
             LogAppMemory("activate-prepared-stream");
             AppLog.WriteLine("Starting next episode in existing player: videoId=" + _args.VideoId);
+            ShowArtwork(_args.Background);
             PlayMedia(_args.Url, _args.Headers, _args.Subtitles);
             return true;
+        }
+
+        private void ShowArtwork(string url)
+        {
+            Artwork.Source = null;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                Artwork.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            var image = new BitmapImage
+            {
+                CreateOptions = BitmapCreateOptions.IgnoreImageCache
+            };
+            image.UriSource = uri;
+            Artwork.Source = image;
+            Artwork.Visibility = Visibility.Visible;
         }
 
         private static string GetUrlHost(string url)
@@ -796,6 +895,8 @@ namespace Xamlio.Views
 
         private void OnPlaying()
         {
+            _playbackStarted = true;
+            Artwork.Visibility = Visibility.Collapsed;
             ReleaseSeek("playing");
 
             if (_audioSwitchPending)
@@ -814,9 +915,10 @@ namespace Xamlio.Views
             Buffering.IsActive = false;
             if (string.Equals(SeekStatusText.Text, "Seeking…", StringComparison.Ordinal))
                 SeekStatusText.Visibility = Visibility.Collapsed;
-            ErrorText.Visibility = Visibility.Collapsed;
+            if (!_transientMessageVisible)
+                ErrorText.Visibility = Visibility.Collapsed;
             PlayPauseIcon.Symbol = Symbol.Pause;
-            DurationText.Text = Format(_player?.Length ?? 0);
+            DurationText.Text = Format(PlaybackLength);
 
             RefreshChapters();
 
@@ -868,14 +970,31 @@ namespace Xamlio.Views
                 @"(?i)([?&](?:token|auth|authKey|apiKey|apikey|access_token|refresh_token)=)[^\s&]+",
                 "$1<redacted>");
 
-            return Regex.Replace(
+            message = Regex.Replace(
                 message,
                 @"(?i)(torbox[\\/])[^\\/\s]+",
+                "$1<redacted>");
+
+            // LibVLC can print resolved stream credentials as a UNC-style
+            // path, for example: \\host\enc~token\resolve\....
+            message = Regex.Replace(
+                message,
+                @"(?i)(\\\\[^\\\s]+\\enc~)[^\\\s]+",
+                "$1<redacted>");
+
+            // Some LibVLC modules print the same credential without the UNC
+            // prefix, for example: host/enc~token/resolve/....
+            return Regex.Replace(
+                message,
+                @"(?i)(\b[^/\s]+/enc~)[^/\s]+",
                 "$1<redacted>");
         }
 
         private void LogLibVlc(object level, object module, string message)
         {
+            if (_isDisposing)
+                return;
+
             if (string.Equals(module?.ToString(), "http", StringComparison.OrdinalIgnoreCase) &&
                 (message ?? "").IndexOf("request:", StringComparison.OrdinalIgnoreCase) >= 0)
             {
@@ -895,6 +1014,21 @@ namespace Xamlio.Views
             if (string.Equals(level?.ToString(), "Error", StringComparison.OrdinalIgnoreCase))
                 _lastLibVlcError = (module?.ToString() ?? "LibVLC") + ": " + safeMessage;
 
+            if (!_subpictureHeapFullHandled &&
+                safeMessage.IndexOf("subpicture heap full", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                _subpictureHeapFullHandled = true;
+                AppLog.WriteLine(
+                    "[SubtitleDiagnostics] subpicture heap full; routing to next episode streams page");
+
+                var _ = Dispatcher.RunAsync(
+                    CoreDispatcherPriority.Normal,
+                    () =>
+                    {
+                        var navigationTask = NavigateToNextEpisodeStreamsAsync();
+                    });
+            }
+
             if (string.Equals(module?.ToString(), "mkv", StringComparison.OrdinalIgnoreCase) &&
                 safeMessage.IndexOf("unable to read KaxCluster", StringComparison.OrdinalIgnoreCase) >= 0 &&
                 _seekInProgress)
@@ -911,6 +1045,80 @@ namespace Xamlio.Views
                 ", message=" + safeMessage);
         }
 
+        private async Task NavigateToNextEpisodeStreamsAsync()
+        {
+            if (_completionHandled || _args == null || _player == null)
+                return;
+
+            try
+            {
+                if (_nextEpisode == null && _nextDiscoveryTask != null)
+                    await _nextDiscoveryTask;
+
+                var episode = _nextEpisode;
+                if (episode == null)
+                {
+                    AppLog.WriteLine(
+                        "[SubtitleDiagnostics] subpicture heap full; next episode unavailable, returning to streams page");
+                    _completionHandled = true;
+                    SavePlaybackPosition("subpicture-heap-full", true);
+                    _lifecycleCancellation?.Cancel();
+                    if (Frame.CanGoBack)
+                        Frame.GoBack();
+                    return;
+                }
+
+                _completionHandled = true;
+                SavePlaybackPosition("subpicture-heap-full", true);
+
+                var showTitle = _args.Title ?? "";
+                var seasonMarker = showTitle.IndexOf(" S", StringComparison.OrdinalIgnoreCase);
+                if (seasonMarker > 0)
+                    showTitle = showTitle.Substring(0, seasonMarker);
+
+                var title = showTitle;
+                if (episode.Season.HasValue && episode.Episode.HasValue)
+                {
+                    title += " S" + episode.Season.Value.ToString("00") +
+                        "E" + episode.Episode.Value.ToString("00");
+                }
+
+                AppLog.WriteLine(
+                    "[SubtitleDiagnostics] navigating-next-episode-streams, videoId=" +
+                    episode.Id);
+
+                _lifecycleCancellation?.Cancel();
+                Frame.Navigate(
+                    typeof(StreamsPage),
+                    new StreamsArgs
+                    {
+                        Type = _args.Type,
+                        VideoId = episode.Id,
+                        MetaId = _args.MetaId,
+                        Title = string.IsNullOrWhiteSpace(title)
+                            ? (episode.DisplayTitle ?? "")
+                            : title,
+                        ShowTitle = showTitle,
+                        EpisodeTitle = episode.DisplayTitle,
+                        EpisodeThumbnail = episode.Thumbnail,
+                        EpisodeDescription = episode.Overview,
+                        Background = _args.Background,
+                        PreferredAddonUrl = _args.AddonUrl
+                    });
+            }
+            catch (OperationCanceledException)
+            {
+                AppLog.WriteLine(
+                    "[SubtitleDiagnostics] next episode streams navigation cancelled");
+            }
+            catch (Exception ex)
+            {
+                AppLog.WriteLine(
+                    "[SubtitleDiagnostics] next episode streams navigation failed: " +
+                    ex.GetType().Name + ": " + ex.Message);
+            }
+        }
+
         private async void MatchDisplay()
         {
             if (_displayMatched || _player == null || !AppServices.Settings.MatchDisplayMode)
@@ -924,7 +1132,7 @@ namespace Xamlio.Views
 
         private void UpdatePosition(long time)
         {
-            var length = _player?.Length ?? 0;
+            var length = PlaybackLength;
 
             if (!_resumeApplied && length > 0)
                 ApplySavedPlaybackPosition();
@@ -947,29 +1155,30 @@ namespace Xamlio.Views
 
         private void ApplySavedPlaybackPosition()
         {
-            if (_resumeApplied || _player == null || _player.Length <= 0)
+            if (_resumeApplied || !HasPlayback || PlaybackLength <= 0)
                 return;
 
             _resumeApplied = true;
 
             if (_resumeTimeMs <= 0 ||
-                _resumeTimeMs >= _player.Length * 0.95)
+                _resumeTimeMs >= PlaybackLength * 0.95)
             {
                 return;
             }
 
             var target = Math.Max(
                 0,
-                Math.Min(_player.Length - 1000, _resumeTimeMs));
+                Math.Min(PlaybackLength - 1000, _resumeTimeMs));
 
-            _player.Time = target;
+            if (_player != null)
+                _player.Time = target;
             UpdatePosition(target);
 
             AppLog.WriteLine(
                 "Playback resumed: videoId=" +
                 (_args?.VideoId ?? "") +
                 ", timeMs=" + target +
-                ", durationMs=" + _player.Length);
+                ", durationMs=" + PlaybackLength);
         }
 
         private static long LoadSavedPlaybackTime(string videoId)
@@ -990,10 +1199,25 @@ namespace Xamlio.Views
 
         private void ShowError(string message)
         {
+            _transientMessageTimer.Stop();
+            _transientMessageVisible = false;
             Buffering.IsActive = false;
             ErrorText.Text = message;
             ErrorText.Visibility = Visibility.Visible;
             ShowOverlay();
+        }
+
+        private void ShowTransientMessage(string message)
+        {
+            if (_isDisposing)
+                return;
+
+            _transientMessageVisible = true;
+            ErrorText.Text = message;
+            ErrorText.Visibility = Visibility.Visible;
+            ShowOverlay();
+            _transientMessageTimer.Stop();
+            _transientMessageTimer.Start();
         }
 
         private void ShowOverlay(bool focusPlayPause = false)
@@ -1015,7 +1239,7 @@ namespace Xamlio.Views
         private void HideOverlay()
         {
             _overlayTimer.Stop();
-            if (_player != null && _player.IsPlaying && !AudioMenu.IsOpen && !SubtitleMenu.IsOpen)
+            if (PlaybackIsPlaying && !AudioMenu.IsOpen && !SubtitleMenu.IsOpen)
                 Overlay.Visibility = Visibility.Collapsed;
         }
 
@@ -1230,15 +1454,15 @@ namespace Xamlio.Views
 
         private void Seek(long deltaMs)
         {
-            if (_player == null || !_player.IsSeekable || _player.Length <= 1000)
+            if (!PlaybackIsSeekable || PlaybackLength <= 1000)
                 return;
-            var target = Math.Max(0, Math.Min(_player.Length - 1000, _player.Time + deltaMs));
+            var target = Math.Max(0, Math.Min(PlaybackLength - 1000, PlaybackTime + deltaMs));
             TrySeekTo(target, "button");
         }
 
         private void TrySeekTo(long targetMs, string source)
         {
-            if (_player == null || !_player.IsSeekable)
+            if (!PlaybackIsSeekable)
                 return;
 
             if (_seekInProgress)
@@ -1259,13 +1483,13 @@ namespace Xamlio.Views
                 return;
             }
 
-            var length = _player.Length;
+            var length = PlaybackLength;
             if (length <= 1000)
                 return;
 
             var target = Math.Max(0, Math.Min(length - 1000, targetMs));
             _seekInProgress = true;
-            _pauseForSeek = _player.IsPlaying;
+            _pauseForSeek = PlaybackIsPlaying;
             _lastSeekUtc = now;
             _lastSeekTargetMs = target;
             SeekStatusText.Text = "Seeking…";
@@ -1276,20 +1500,25 @@ namespace Xamlio.Views
             {
                 AppLog.WriteLine("Seek: source=" + source +
                     ", targetMs=" + target +
-                    ", currentMs=" + _player.Time +
+                    ", currentMs=" + PlaybackTime +
                     ", lengthMs=" + length);
                 LogAppMemory("seek-before");
 
-                if (_pauseForSeek)
+                if (_pauseForSeek && _player != null)
+                {
                     _player.SetPause(true);
+                }
 
-                _player.Time = target;
+                if (_player != null)
+                    _player.Time = target;
                 UpdatePosition(target);
                 SavePlaybackPosition("seek");
                 ShowOverlay();
 
                 if (_pauseForSeek && _player != null)
+                {
                     _player.Play();
+                }
                 LogAppMemory("seek-after");
             }
             catch (Exception ex)
@@ -1358,7 +1587,7 @@ namespace Xamlio.Views
             string reason,
             bool forceServerSync = false)
         {
-            if (_player == null ||
+            if (!HasPlayback ||
                 _args == null ||
                 string.IsNullOrWhiteSpace(_args.VideoId))
             {
@@ -1372,8 +1601,8 @@ namespace Xamlio.Views
                 return;
             }
 
-            var time = Math.Max(0, _player.Time);
-            var duration = Math.Max(0, _player.Length);
+            var time = Math.Max(0, PlaybackTime);
+            var duration = Math.Max(0, PlaybackLength);
             if (!_resumeApplied && time <= 0)
                 return;
 
@@ -1410,7 +1639,11 @@ namespace Xamlio.Views
             long duration,
             bool force)
         {
-            if (string.IsNullOrWhiteSpace(_args?.MetaId) ||
+            var args = _args;
+            var metaId = args?.MetaId;
+            var videoId = args?.VideoId;
+            if (string.IsNullOrWhiteSpace(metaId) ||
+                string.IsNullOrWhiteSpace(videoId) ||
                 !AppServices.Settings.IsLoggedIn ||
                 (!force &&
                  _lastServerSavedTime >= 0 &&
@@ -1438,8 +1671,8 @@ namespace Xamlio.Views
             {
                 await AppServices.Api.UpdateLibraryPlaybackAsync(
                     AppServices.Settings.AuthKey,
-                    _args.MetaId,
-                    _args.VideoId,
+                    metaId,
+                    videoId,
                     time,
                     duration);
 
@@ -1447,8 +1680,8 @@ namespace Xamlio.Views
 
                 AppLog.WriteLine(
                     "Playback synced: videoId=" +
-                    _args.VideoId +
-                    ", libraryId=" + _args.MetaId +
+                    videoId +
+                    ", libraryId=" + metaId +
                     ", timeMs=" + time +
                     ", durationMs=" + duration);
             }
@@ -1480,17 +1713,31 @@ namespace Xamlio.Views
 
         private void TogglePause()
         {
-            if (_player == null)
+            if (!HasPlayback)
                 return;
-            if (_player.IsPlaying)
-                _player.SetPause(true);
-            else
-                _player.Play();
+            if (_player != null)
+            {
+                if (_player.IsPlaying)
+                    _player.SetPause(true);
+                else
+                    _player.Play();
+            }
         }
 
         private void Rewind_Click(object sender, RoutedEventArgs e) { Seek(-10000); }
         private void Forward_Click(object sender, RoutedEventArgs e) { Seek(30000); }
         private void PlayPause_Click(object sender, RoutedEventArgs e) { TogglePause(); }
+
+        private void Memory_Click(object sender, RoutedEventArgs e)
+        {
+            var show = MemoryPanel.Visibility != Visibility.Visible;
+            MemoryPanel.Visibility = show
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+            if (show)
+                UpdateMemoryText();
+        }
 
         private static void FillTrackMenu(MenuFlyout menu, LibVLCSharp.Shared.Structures.TrackDescription[] tracks, int current, Action<int> select)
         {
@@ -1519,7 +1766,7 @@ namespace Xamlio.Views
         {
             var _ = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
-                if (_player != null)
+                if (!_isDisposing && HasPlayback)
                     action();
             });
         }
@@ -1530,7 +1777,7 @@ namespace Xamlio.Views
             return t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss") : t.ToString(@"m\:ss");
         }
 
-        private void AudioMenu_Opening(object sender, object e)
+        private async void AudioMenu_Opening(object sender, object e)
         {
             var tracks = _player?.AudioTrackDescription;
             LogAudio("event=menu-open, currentTrack=" + (_player?.AudioTrack ?? -1) +
@@ -1590,7 +1837,7 @@ namespace Xamlio.Views
             }
         }
 
-        private void SubtitleMenu_Opening(object sender, object e)
+        private async void SubtitleMenu_Opening(object sender, object e)
         {
             FillTrackMenu(
                 SubtitleMenu,
@@ -1640,6 +1887,15 @@ namespace Xamlio.Views
             if (_additionalSubtitlesLoading || _player == null || _args == null)
                 return;
 
+            if (IsMemoryTooLowForSubtitles())
+            {
+                ShowTransientMessage(
+                    "Xbox memory is low, so subtitles could not be loaded.");
+                AppLog.WriteLine(
+                    "[SubtitleDiagnostics] manual subtitle load skipped because memory is low");
+                return;
+            }
+
             _additionalSubtitlesLoading = true;
             try
             {
@@ -1654,8 +1910,17 @@ namespace Xamlio.Views
                     .GroupBy(s => s.Url, StringComparer.OrdinalIgnoreCase)
                     .Select(g => g.First())
                     .Where(s => !_loadedSubtitleUrls.Contains(s.Url))
-                    .Take(5)
                     .ToList();
+
+                var preferred = AppServices.Settings.PreferredSubtitleLanguage;
+                var selected = candidates.FirstOrDefault(s =>
+                    string.Equals(s.Lang, preferred, StringComparison.OrdinalIgnoreCase));
+                if (selected == null)
+                    selected = candidates.FirstOrDefault();
+
+                candidates = selected == null
+                    ? new List<Subtitle>()
+                    : new List<Subtitle> { selected };
 
                 foreach (var subtitle in candidates)
                 {
@@ -1683,6 +1948,8 @@ namespace Xamlio.Views
             CurrentClockText.Text =
                 DateTime.Now.ToString("h:mm tt");
 
+            UpdateMemoryText();
+
             var remaining = Math.Max(
                 0,
                 (_player?.Length ?? 0) -
@@ -1692,6 +1959,21 @@ namespace Xamlio.Views
 
             RemainingClockText.Text =
                 "Ends: " + finishTime.ToString("h:mm tt");
+        }
+
+        private void UpdateMemoryText()
+        {
+            try
+            {
+                var report = MemoryManager.GetAppMemoryReport();
+                const double megabyte = 1024.0 * 1024.0;
+                var totalUsageMb = report.TotalCommitUsage / megabyte;
+                MemoryText.Text = "Memory: " + totalUsageMb.ToString("F0") + " MB";
+            }
+            catch (Exception)
+            {
+                MemoryText.Text = "Memory: unavailable";
+            }
         }
     }
 }

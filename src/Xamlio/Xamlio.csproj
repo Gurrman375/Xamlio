@@ -64,8 +64,12 @@
     <Compile Include="Services\DisplayModeService.cs" />
     <Compile Include="Services\LocalSettingsStore.cs" />
     <Compile Include="Services\AppLog.cs" />
+    <Compile Include="Services\ReleaseReminderService.cs" />
     <Compile Include="Views\BoardPage.xaml.cs">
       <DependentUpon>BoardPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\CalendarPage.xaml.cs">
+      <DependentUpon>CalendarPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\DetailPage.xaml.cs">
       <DependentUpon>DetailPage.xaml</DependentUpon>
@@ -91,6 +95,8 @@
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Views\WatchStateHelper.cs" />
+  </ItemGroup>
+  <ItemGroup>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
@@ -143,7 +149,12 @@
     <Content Include="Assets\Wide310x150Logo.scale-125.png" />
     <Content Include="Assets\Wide310x150Logo.scale-150.png" />
     <Content Include="Assets\Wide310x150Logo.scale-400.png" />
-    <Content Include="Assets\XButton.png" />
+    <Content Include="Assets\Xbox_View_button.svg" />
+    <Content Include="Assets\Xbox_Menu_button.svg" />
+    <Content Include="Assets\Xbox_button_X.svg" />
+    <Content Include="Assets\Xbox_button_Y.svg" />
+    <Content Include="Assets\Xbox_button_A.svg" />
+    <Content Include="Assets\Xbox_button_B.svg" />
     <None Include="Package.StoreAssociation.xml" />
     <Content Include="Properties\Default.rd.xml" />
     <Content Include="Assets\LockScreenLogo.scale-200.png" />
@@ -159,6 +170,10 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Page Include="Views\BoardPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\CalendarPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

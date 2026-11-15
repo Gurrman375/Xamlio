@@ -6,9 +6,31 @@
     Background="Black">
 
     <Grid>
+        <Image
+            x:Name="Artwork"
+            Stretch="UniformToFill"
+            IsHitTestVisible="False"
+            Visibility="Collapsed" />
+
         <vlc:VideoView
             x:Name="Video"
             Initialized="Video_Initialized" />
+
+        <Border
+            x:Name="MemoryPanel"
+            Margin="24"
+            Padding="8,4"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Background="#88000000"
+            IsHitTestVisible="False"
+            CornerRadius="3">
+            <TextBlock
+                x:Name="MemoryText"
+                FontSize="14"
+                Foreground="White"
+                Text="Memory: --" />
+        </Border>
 
         <ProgressRing
             x:Name="Buffering"
@@ -136,6 +158,13 @@
                             x:Name="SubtitleMenu"
                             Opening="SubtitleMenu_Opening" />
                     </Button.Flyout>
+                </Button>
+
+                <Button
+                    x:Name="MemoryButton"
+                    Click="Memory_Click"
+                    ToolTipService.ToolTip="Show or hide memory usage">
+                    <SymbolIcon Symbol="View" />
                 </Button>
 
                 <Button
